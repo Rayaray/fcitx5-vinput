@@ -11,6 +11,7 @@ target_link_libraries(fcitx5-vinput PRIVATE
     Fcitx5::Config
     Fcitx5::Core
     Fcitx5::Module::DBus
+    nlohmann_json::nlohmann_json
     ${PIPEWIRE_LIBRARIES}
 )
 target_include_directories(fcitx5-vinput PRIVATE

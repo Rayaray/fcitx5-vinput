@@ -70,7 +70,8 @@ jobs:
             libsystemd-dev \
             libfcitx5core-dev \
             libfcitx5config-dev \
-            fcitx5-modules-dev
+            fcitx5-modules-dev \
+            nlohmann-json3-dev
 
       - uses: actions/download-artifact@v4
         with:
@@ -130,6 +131,7 @@ jobs:
             cmake \
             curl \
             fcitx5 \
+            nlohmann-json \
             pipewire \
             pkgconf \
             systemd

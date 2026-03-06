@@ -34,6 +34,7 @@ target_link_directories(vinput-daemon PRIVATE
 
 target_link_libraries(vinput-daemon PRIVATE
     Fcitx5::Config
+    nlohmann_json::nlohmann_json
     ${PIPEWIRE_LIBRARIES}
     ${SDBUS_LIBRARIES}
     CURL::libcurl

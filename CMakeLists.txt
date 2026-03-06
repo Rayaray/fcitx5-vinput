@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(VINPUT_PROJECT_VERSION "0.1.0"
+set(VINPUT_PROJECT_VERSION "0.1.1"
     CACHE STRING "Project version for builds and release artifacts")
 project(fcitx5-vinput VERSION ${VINPUT_PROJECT_VERSION} LANGUAGES CXX)
 
@@ -23,6 +23,7 @@ find_package(Fcitx5Core REQUIRED)
 find_package(Fcitx5Config REQUIRED)
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 find_package(PkgConfig REQUIRED)
+find_package(nlohmann_json 3.2.0 REQUIRED)
 
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 pkg_check_modules(SDBUS REQUIRED libsystemd)
