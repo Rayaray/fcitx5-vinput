@@ -70,6 +70,7 @@ jobs:
             libsystemd-dev \
             libfcitx5core-dev \
             libfcitx5config-dev \
+            libfcitx5utils-dev \
             fcitx5-modules-dev \
             nlohmann-json3-dev
 
