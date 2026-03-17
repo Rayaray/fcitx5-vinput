@@ -111,7 +111,8 @@ bool AudioCapture::CreateStream() {
 
   auto *properties =
       pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY,
-                        "Capture", PW_KEY_MEDIA_ROLE, "Communication", nullptr);
+                        "Capture", PW_KEY_MEDIA_ROLE, "Communication",
+                        PW_KEY_STREAM_CAPTURE_SINK, "false", nullptr);
   if (!properties) {
     fprintf(stderr, "vinput: failed to allocate PipeWire properties\n");
     pw_thread_loop_unlock(loop_);
