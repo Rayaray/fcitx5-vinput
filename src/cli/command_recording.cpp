@@ -84,32 +84,20 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
     vinput::cli::DbusClient dbus;
     if (!EnsureDaemon(dbus, fmt, ctx)) return 1;
 
-    // Optimistic start: try StartRecording first, handle failure based on state
-    std::string err;
-    if (dbus.StartRecording(&err)) {
-        if (ctx.json_output) {
-            fmt.PrintJson({{"ok", true}, {"action", "start"}});
-        } else {
-            fmt.PrintInfo(_("Recording started."));
-        }
-        return 0;
-    }
-
-    // Start failed — check daemon status to decide next action
+    // Query current status first to decide action
     std::string status;
     std::string status_err;
     if (!dbus.GetDaemonStatus(&status, &status_err)) {
-        // Can't even get status, report original start error
         if (ctx.json_output) {
-            fmt.PrintJson({{"ok", false}, {"error", err}});
+            fmt.PrintJson({{"ok", false}, {"error", status_err}});
         } else {
-            fmt.PrintError(err);
+            fmt.PrintError(status_err);
         }
         return 1;
     }
 
     if (status == "recording") {
-        // Was already recording — stop it
+        // Currently recording — stop it
         std::string resolved = ResolveSceneId(scene_id);
         if (resolved.empty()) {
             std::string msg = _("No active scene configured. Use 'vinput scene use <ID>' to set one.");
@@ -139,7 +127,6 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
         return 0;
     }
 
-    // Busy states
     if (status == "inferring" || status == "postprocessing") {
         std::string msg = vinput::str::FmtStr(_("Daemon is busy (status: %s)."), status.c_str());
         if (ctx.json_output) {
@@ -160,11 +147,21 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
         return 1;
     }
 
-    // Unknown state — pass through original start error
-    if (ctx.json_output) {
-        fmt.PrintJson({{"ok", false}, {"error", err}});
-    } else {
-        fmt.PrintError(err);
+    // Idle — start recording
+    std::string err;
+    if (!dbus.StartRecording(&err)) {
+        if (ctx.json_output) {
+            fmt.PrintJson({{"ok", false}, {"error", err}});
+        } else {
+            fmt.PrintError(err);
+        }
+        return 1;
     }
-    return 1;
+
+    if (ctx.json_output) {
+        fmt.PrintJson({{"ok", true}, {"action", "start"}});
+    } else {
+        fmt.PrintInfo(_("Recording started."));
+    }
+    return 0;
 }
