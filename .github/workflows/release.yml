@@ -365,7 +365,10 @@ jobs:
             --distribution noble \
             "Release ${version}"
 
-          dpkg-buildpackage -S -sa -d -k"${GPG_KEY_ID}"
+          dpkg-buildpackage -S -sa -d --no-sign
 
           cd ..
+          debsign -k"${GPG_KEY_ID}" \
+            -p"gpg --batch --pinentry-mode loopback" \
+            "${pkg}_source.changes"
           dput ppa:xifan233/ppa "${pkg}_source.changes"
