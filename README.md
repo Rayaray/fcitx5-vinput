@@ -11,7 +11,7 @@
 
 [English](README.md) | [中文](README_zh.md)
 
-<video src="https://raw.githubusercontent.com/xifan2333/fcitx5-vinput/main/assets/demo.mp4" autoplay loop muted playsinline></video>
+https://github.com/user-attachments/assets/113115b7-d61f-4127-a7a0-4325c9673d5c
 
 </div>
 
