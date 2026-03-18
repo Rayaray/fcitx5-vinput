@@ -30,14 +30,28 @@ Powered by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) for on-device sp
 
 ## Installation
 
-### Arch Linux
+### Arch Linux (AUR)
 
 ```bash
-# Download latest .pkg.tar.zst from GitHub Releases
-sudo pacman -U fcitx5-vinput-*.pkg.tar.zst
+yay -S fcitx5-vinput-bin
 ```
 
-### Ubuntu / Debian
+### Fedora (COPR)
+
+```bash
+sudo dnf copr enable xifan/fcitx5-vinput-bin
+sudo dnf install fcitx5-vinput
+```
+
+### Ubuntu 24.04 (PPA)
+
+```bash
+sudo add-apt-repository ppa:xifan233/ppa
+sudo apt update
+sudo apt install fcitx5-vinput
+```
+
+### Ubuntu / Debian (manual)
 
 ```bash
 # Download latest .deb from GitHub Releases
@@ -242,4 +256,7 @@ Push a tag (e.g. `v0.1.0`) and GitHub Actions will automatically build and publi
 
 - Source tarball `fcitx5-vinput-<version>.tar.gz`
 - Ubuntu 24.04 `.deb`
+- Debian 12 `.deb`
 - Arch Linux `.pkg.tar.zst`
+- Fedora COPR (`xifan/fcitx5-vinput-bin`)
+- Ubuntu PPA (`ppa:xifan233/ppa`)

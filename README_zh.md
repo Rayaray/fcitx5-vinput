@@ -30,14 +30,28 @@ https://github.com/user-attachments/assets/5a548a68-153c-4842-bab6-926f30bb720e
 
 ## 安装
 
-### Arch Linux
+### Arch Linux (AUR)
 
 ```bash
-# 从 GitHub Releases 下载最新 .pkg.tar.zst
-sudo pacman -U fcitx5-vinput-*.pkg.tar.zst
+yay -S fcitx5-vinput-bin
 ```
 
-### Ubuntu / Debian
+### Fedora (COPR)
+
+```bash
+sudo dnf copr enable xifan/fcitx5-vinput-bin
+sudo dnf install fcitx5-vinput
+```
+
+### Ubuntu 24.04 (PPA)
+
+```bash
+sudo add-apt-repository ppa:xifan233/ppa
+sudo apt update
+sudo apt install fcitx5-vinput
+```
+
+### Ubuntu / Debian（手动安装）
 
 ```bash
 # 从 GitHub Releases 下载最新 .deb
@@ -238,8 +252,11 @@ vinput llm enable
 
 ## 打包发布
 
-推送形如 `v0.1.0` 的 tag 后，GitHub Actions 会自动构建并上传以下产物到 Release：
+推送形如 `v0.1.0` 的 tag 后，GitHub Actions 会自动构建并发布：
 
 - 源码包 `fcitx5-vinput-<version>.tar.gz`
 - Ubuntu 24.04 `.deb`
+- Debian 12 `.deb`
 - Arch Linux `.pkg.tar.zst`
+- Fedora COPR (`xifan/fcitx5-vinput-bin`)
+- Ubuntu PPA (`ppa:xifan233/ppa`)
