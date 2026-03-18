@@ -365,8 +365,10 @@ jobs:
             "Release ${version}"
 
           export GPG_TTY=$(tty) || true
-          debuild -S -sa -d --no-lintian -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
-            -p"gpg --batch --pinentry-mode loopback"
+          debuild -S -sa -d \
+            -p"gpg --batch --pinentry-mode loopback" \
+            -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
+            --lintian-opts --suppress-tags source-is-missing
 
           cd ..
           dput ppa:xifan233/ppa fcitx5-vinput_${version}-1ppa1~noble1_source.changes
