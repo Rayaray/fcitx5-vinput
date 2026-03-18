@@ -369,7 +369,7 @@ jobs:
             --lintian-opts --suppress-tags source-is-missing
 
           debsign -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
-            -p"gpg --batch --no-tty --pinentry-mode loopback" \
+            -p"gpg --batch --no-tty --pinentry-mode loopback --passphrase ''" \
             ../fcitx5-vinput_${version}-1ppa1~noble1_source.changes
 
           cd ..
