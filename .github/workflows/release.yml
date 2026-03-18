@@ -341,6 +341,7 @@ jobs:
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
           echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
           gpgconf --kill gpg-agent
 
       - name: Build and upload source package
@@ -369,7 +370,6 @@ jobs:
             --lintian-opts --suppress-tags source-is-missing
 
           debsign -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
-            -p"gpg --batch --no-tty --pinentry-mode loopback --passphrase ''" \
             ../fcitx5-vinput_${version}-1ppa1~noble1_source.changes
 
           cd ..
