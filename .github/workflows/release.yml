@@ -216,6 +216,7 @@ jobs:
             fcitx5 \
             git \
             libarchive \
+            ninja \
             nlohmann-json \
             openssl \
             pipewire \
@@ -267,6 +268,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
       - name: Patch manifest to use local source
         run: |
           sed -i '/- type: git/{N;N;s|- type: git\n.*url:.*\n.*tag:.*|- type: dir\n        path: ../../|;}' \
