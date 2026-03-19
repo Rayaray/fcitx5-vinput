@@ -660,6 +660,13 @@ static QStringList FetchModelsFromProvider(const LlmProvider &provider) {
   if (provider.base_url.empty())
     return models;
 
+  // Cache by base_url + api_key to avoid repeated HTTP requests
+  static QHash<QString, QStringList> cache;
+  QString cacheKey = QString::fromStdString(provider.base_url) + "\n" +
+                     QString::fromStdString(provider.api_key);
+  if (cache.contains(cacheKey))
+    return cache.value(cacheKey);
+
   QString url = QString::fromStdString(provider.base_url);
   if (!url.endsWith('/'))
     url += '/';
@@ -688,6 +695,7 @@ static QStringList FetchModelsFromProvider(const LlmProvider &provider) {
     models.sort();
   }
   reply->deleteLater();
+  cache.insert(cacheKey, models);
   return models;
 }
 
@@ -746,6 +754,9 @@ void MainWindow::onSceneAdd() {
   spinTimeout->setSingleStep(1000);
   spinTimeout->setValue(4000);
   spinTimeout->setSuffix(" ms");
+  auto *spinCandidates = new QSpinBox();
+  spinCandidates->setRange(0, 10);
+  spinCandidates->setValue(1);
 
   CoreConfig config = LoadCoreConfig();
   SetupProviderModelCombos(comboProvider, comboModel, config);
@@ -755,6 +766,7 @@ void MainWindow::onSceneAdd() {
   form->addRow(tr("Prompt:"), editPrompt);
   form->addRow(tr("Provider:"), comboProvider);
   form->addRow(tr("Model:"), comboModel);
+  form->addRow(tr("Candidate Count:"), spinCandidates);
   form->addRow(tr("Timeout (ms):"), spinTimeout);
 
   auto *buttons =
@@ -775,6 +787,7 @@ void MainWindow::onSceneAdd() {
   def.prompt = editPrompt->toPlainText().toStdString();
   def.provider_id = comboProvider->currentText().toStdString();
   def.model = comboModel->currentText().trimmed().toStdString();
+  def.candidate_count = spinCandidates->value();
   def.timeout_ms = spinTimeout->value();
 
   vinput::scene::Config sc;
@@ -832,6 +845,9 @@ void MainWindow::onSceneEdit() {
   spinTimeout->setSingleStep(1000);
   spinTimeout->setValue(found->timeout_ms);
   spinTimeout->setSuffix(" ms");
+  auto *spinCandidates = new QSpinBox();
+  spinCandidates->setRange(0, 10);
+  spinCandidates->setValue(found->candidate_count);
 
   SetupProviderModelCombos(comboProvider, comboModel, config,
                            QString::fromStdString(found->provider_id),
@@ -842,6 +858,7 @@ void MainWindow::onSceneEdit() {
   form->addRow(tr("Prompt:"), editPrompt);
   form->addRow(tr("Provider:"), comboProvider);
   form->addRow(tr("Model:"), comboModel);
+  form->addRow(tr("Candidate Count:"), spinCandidates);
   form->addRow(tr("Timeout (ms):"), spinTimeout);
 
   auto *buttons =
@@ -861,6 +878,7 @@ void MainWindow::onSceneEdit() {
   updated.prompt = editPrompt->toPlainText().toStdString();
   updated.provider_id = comboProvider->currentText().toStdString();
   updated.model = comboModel->currentText().trimmed().toStdString();
+  updated.candidate_count = spinCandidates->value();
   updated.timeout_ms = spinTimeout->value();
 
   vinput::scene::Config sc;
