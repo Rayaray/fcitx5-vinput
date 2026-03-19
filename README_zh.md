@@ -79,7 +79,7 @@ vinput model add <模型名>        # 下载并安装
 vinput model use <模型名>        # 设置为当前模型
 ```
 
-也可手动将模型目录放到 `~/.local/share/fcitx5-vinput/models/<模型名>/`，目录内需包含：
+也可手动将模型目录放到 `~/.local/share/vinput/models/<模型名>/`，目录内需包含：
 - `vinput-model.json`
 - `model.int8.onnx` 或 `model.onnx`
 - `tokens.txt`

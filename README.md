@@ -79,7 +79,7 @@ vinput model add <model-name>   # Download and install
 vinput model use <model-name>   # Set as active model
 ```
 
-Or manually place a model directory in `~/.local/share/fcitx5-vinput/models/<model-name>/` containing:
+Or manually place a model directory in `~/.local/share/vinput/models/<model-name>/` containing:
 - `vinput-model.json`
 - `model.int8.onnx` or `model.onnx`
 - `tokens.txt`
