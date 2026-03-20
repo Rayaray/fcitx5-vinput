@@ -264,42 +264,12 @@ jobs:
           path: dist/*.pkg.tar.zst
           if-no-files-found: error
 
-  build-flatpak:
-    needs: source_archive
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
-      options: --privileged
-    steps:
-      - uses: actions/checkout@v4
-      - name: Render pinned Flatpak manifest
-        shell: bash
-        run: |
-          cp packaging/flatpak/org.fcitx.Fcitx5.Addon.Vinput.yaml \
-            packaging/flatpak/release-manifest.yaml
-          sed -i \
-            -e "s|@FCITX5_RUNTIME_VERSION@|stable|g" \
-            -e "s|@VINPUT_RELEASE_TAG@|${GITHUB_REF_NAME}|g" \
-            -e "s|@VINPUT_RELEASE_COMMIT@|${GITHUB_SHA}|g" \
-            packaging/flatpak/release-manifest.yaml
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          manifest-path: packaging/flatpak/release-manifest.yaml
-          bundle: fcitx5-vinput.flatpak
-          repository-name: flathub
-          cache-key: flatpak-builder-${{ github.sha }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: flatpak-bundle
-          path: fcitx5-vinput.flatpak
-
   publish-release:
     needs:
       - source_archive
       - build-deb
       - build-deb-debian12
       - build-arch
-      - build-flatpak
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}

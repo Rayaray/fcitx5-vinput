@@ -46,17 +46,3 @@ jobs:
 
       - name: Build
         run: cmake --build build
-
-  flatpak:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
-      options: --privileged
-    steps:
-      - uses: actions/checkout@v4
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          manifest-path: packaging/flatpak/ci-manifest.yaml
-          build-bundle: false
-          repository-name: flathub
-          cache-key: flatpak-builder-${{ github.sha }}
