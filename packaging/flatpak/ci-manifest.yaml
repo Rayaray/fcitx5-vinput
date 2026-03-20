@@ -27,6 +27,15 @@ modules:
       - type: archive
         url: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.28/sherpa-onnx-v1.12.28-linux-x64-shared-no-tts.tar.bz2
         sha256: 4f1ad4ba5c80271f55b1ec6f0a93083aa1588a86ab1491153e48064f4ed3870b
+  - name: cli11
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCLI11_BUILD_TESTS=OFF
+      - -DCLI11_BUILD_EXAMPLES=OFF
+    sources:
+      - type: archive
+        url: https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.4.2.tar.gz
+        sha256: f2d893a65c3b1324c50d4e682c0cdc021dd0477ae2c048544f39eed6654b699a
   - name: fcitx5-vinput
     buildsystem: cmake-ninja
     config-opts:
