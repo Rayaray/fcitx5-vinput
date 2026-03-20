@@ -68,7 +68,12 @@ AsrProvider DefaultBuiltinAsrProvider() {
 }  // namespace
 
 std::string GetCoreConfigPath() {
-  return vinput::path::CoreConfigPath().string();
+  const auto path = vinput::path::CoreConfigPath();
+  std::filesystem::path resolved;
+  if (vinput::file::ResolveSymlinkPath(path, &resolved, nullptr)) {
+    return resolved.string();
+  }
+  return path.string();
 }
 
 // ---------------------------------------------------------------------------

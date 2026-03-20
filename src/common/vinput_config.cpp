@@ -1,12 +1,16 @@
 #include "vinput_config.h"
 
 #include "common/i18n.h"
+#include "common/file_utils.h"
 
 #include <fcitx-config/iniparser.h>
+#include <fcitx-config/rawconfig.h>
 #include <fcitx-utils/standardpath.h>
 
 #include <cstdio>
 #include <filesystem>
+#include <iostream>
+#include <sstream>
 #include <string>
 
 namespace {
@@ -118,8 +122,22 @@ VinputSettings LoadVinputSettings() {
 
 bool SaveVinputSettings(const VinputSettings &settings) {
   VinputConfig config(settings);
-  return fcitx::safeSaveAsIni(config, fcitx::StandardPath::Type::PkgConfig,
-                              kVinputConfigPath);
+  fcitx::RawConfig raw;
+  config.save(raw);
+
+  std::ostringstream out;
+  if (!fcitx::writeAsIni(raw, out)) {
+    std::cerr << "Failed to serialize vinput addon config.\n";
+    return false;
+  }
+
+  std::string error;
+  if (!vinput::file::AtomicWriteTextFile(UserPkgConfigPath(kVinputConfigPath),
+                                         out.str(), &error)) {
+    std::cerr << "Failed to save vinput addon config: " << error << "\n";
+    return false;
+  }
+  return true;
 }
 
 std::unique_ptr<VinputConfig>

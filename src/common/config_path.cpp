@@ -200,19 +200,29 @@ bool SetConfigValue(const std::string &dotpath, const std::string &value,
 }
 
 std::filesystem::path GetEditTarget(const std::string &target) {
+  std::filesystem::path path;
   if (target == "extra") {
-    return vinput::path::CoreConfigPath();
+    path = vinput::path::CoreConfigPath();
+  } else {
+    // "fcitx" → $XDG_CONFIG_HOME/fcitx5/conf/vinput.conf
+    //           or ~/.config/fcitx5/conf/vinput.conf
+    const char *xdg = std::getenv("XDG_CONFIG_HOME");
+    if (xdg && xdg[0] != '\0') {
+      path = std::filesystem::path(xdg) / "fcitx5" / "conf" / "vinput.conf";
+    } else {
+      const char *home = std::getenv("HOME");
+      if (!home || home[0] == '\0')
+        return {};
+      path = std::filesystem::path(home) / ".config" / "fcitx5" / "conf" /
+             "vinput.conf";
+    }
   }
-  // "fcitx" → $XDG_CONFIG_HOME/fcitx5/conf/vinput.conf
-  //           or ~/.config/fcitx5/conf/vinput.conf
-  const char *xdg = std::getenv("XDG_CONFIG_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "fcitx5" / "conf" / "vinput.conf";
+
+  std::filesystem::path resolved;
+  if (vinput::file::ResolveSymlinkPath(path, &resolved, nullptr)) {
+    return resolved;
   }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".config" / "fcitx5" / "conf" / "vinput.conf";
+  return path;
 }
 
 } // namespace vinput::config
