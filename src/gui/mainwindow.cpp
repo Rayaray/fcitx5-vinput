@@ -35,6 +35,7 @@
 
 #include "common/asr_defaults.h"
 #include "common/llm_defaults.h"
+#include "common/path_utils.h"
 
 namespace {
 
