@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 # ==vinput-adaptor==
 # @name MTranServer Proxy
-# @description OpenAI-compatible proxy for MTranServer
+# @description 为 MTranServer 提供 OpenAI 兼容代理
 # @author xifan
 # @version 1.0.0
 # @env MTRAN_URL (optional, default: http://localhost:8989)
 # @env MTRAN_TOKEN (optional)
 # @env MTRAN_PORT (optional, default: 8990)
 # ==/vinput-adaptor==
-"""OpenAI-compatible proxy for MTranServer.
+"""为 MTranServer 提供 OpenAI 兼容代理。
 
-Translates /v1/chat/completions requests into MTranServer /translate calls.
+将 `/v1/chat/completions` 请求转换为 MTranServer 的 `/translate` 调用。
 
-Environment:
-    MTRAN_PORT      Optional port. Defaults to 8990.
-    MTRAN_URL       Optional upstream URL. Defaults to http://localhost:8989.
-    MTRAN_TOKEN     Optional bearer token for the upstream service.
+环境变量：
+    MTRAN_PORT      可选，监听端口，默认值为 8990。
+    MTRAN_URL       可选，上游服务地址，默认值为 http://localhost:8989。
+    MTRAN_TOKEN     可选，上游服务的 Bearer Token。
 
-Scene prompt should specify target language, e.g.:
+场景 prompt 应指定目标语言，例如：
     "translate to en"
     "translate to ja"
     "translate to zh-Hans"
 
-The user message content is the text to translate.
+用户消息内容即待翻译文本。
 """
 
 import argparse
@@ -43,7 +43,7 @@ mtran_token = ""
 
 
 def parse_target_lang(system_prompt: str) -> str:
-    """Extract target language from system prompt like 'translate to en'."""
+    """从类似 `translate to en` 的 system prompt 中提取目标语言。"""
     match = re.search(r"translate\s+to\s+([\w-]+)", system_prompt, re.IGNORECASE)
     return match.group(1) if match else "en"
 

@@ -1,23 +1,23 @@
-# ASR Provider Scripts
+# ASR Provider 脚本
 
-This directory contains built-in ASR provider scripts tracked in the project
-repository. Build/install steps copy them into the runtime data directory.
+这个目录保存项目内置的 ASR provider 脚本。构建和安装时，会将它们复制到
+运行时数据目录。
 
-- Built-in install path: `/usr/share/fcitx5-vinput/asr-providers/`
-- User override path: `~/.config/vinput/asr-providers/`
+- 内置安装路径：`/usr/share/fcitx5-vinput/asr-providers/`
+- 用户覆盖路径：`~/.config/vinput/asr-providers/`
 
-Managed providers should use an explicit command specification:
+受管理的 provider 应使用显式命令配置：
 
-- `command`: executable or interpreter
-- `args`: script path and additional arguments
-- `env`: environment overrides
+- `command`：可执行文件或解释器
+- `args`：脚本路径和额外参数
+- `env`：环境变量覆盖
 
-The optional metadata block format is:
+可选的元数据块格式如下：
 
 ```text
 # ==vinput-asr-provider==
 # @name         ElevenLabs Speech to Text
-# @description  Cloud ASR via ElevenLabs API
+# @description  通过 ElevenLabs API 调用云端 ASR
 # @author       xifan
 # @version      1.0.0
 # ==/vinput-asr-provider==
