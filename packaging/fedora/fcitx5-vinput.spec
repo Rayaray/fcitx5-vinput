@@ -1,4 +1,7 @@
 %global sherpa_onnx_ver @SHERPA_ONNX_VERSION@
+%global __provides_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
+%global __requires_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
+%global __requires_exclude ^lib(onnxruntime|sherpa-onnx-c-api|sherpa-onnx-cxx-api)\\.so(\\(.*\\))?$
 
 Name:           fcitx5-vinput
 Version:        @VINPUT_VERSION@
@@ -32,6 +35,11 @@ Requires:       fcitx5
 Requires:       pipewire
 Requires:       curl
 Requires:       systemd
+
+# Bundled sherpa-onnx/onnxruntime shared libraries are private runtime
+# dependencies installed under %{_libdir}/fcitx5-vinput/. They should not
+# participate in RPM auto provides/requires, otherwise the package may end up
+# depending on the exact onnxruntime symbol version from the build root.
 
 %description
 Local offline voice input plugin for Fcitx5, powered by sherpa-onnx
