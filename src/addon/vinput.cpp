@@ -8,7 +8,6 @@
 #include <dbus_public.h>
 #include <fcitx-utils/event.h>
 #include <fcitx/inputcontext.h>
-#include <fcitx/log.h>
 
 #include <cstdio>
 #include <fstream>
