@@ -138,6 +138,7 @@ jobs:
             file \
             git \
             curl \
+            jq \
             libcurl4-openssl-dev \
             libssl-dev \
             libarchive-dev \
@@ -215,6 +216,7 @@ jobs:
             curl \
             fcitx5 \
             git \
+            jq \
             libarchive \
             ninja \
             nlohmann-json \
