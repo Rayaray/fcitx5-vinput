@@ -32,6 +32,16 @@ const char *BuiltinSceneLabel(std::string_view scene_id) {
   return nullptr;
 }
 
+const char *BuiltinSceneLabelFromKey(std::string_view label) {
+  if (label == kRawSceneLabelKey) {
+    return _("Raw");
+  }
+  if (label == kCommandSceneLabelKey) {
+    return _("Command");
+  }
+  return nullptr;
+}
+
 } // namespace
 
 int NormalizeCandidateCount(int candidate_count) {
@@ -46,6 +56,10 @@ int NormalizeCandidateCount(int candidate_count) {
 
 bool IsBuiltinSceneId(std::string_view scene_id) {
   return scene_id == kRawSceneId || scene_id == kCommandSceneId;
+}
+
+bool IsBuiltinSceneLabelKey(std::string_view label) {
+  return label == kRawSceneLabelKey || label == kCommandSceneLabelKey;
 }
 
 void NormalizeDefinition(Definition *scene) {
@@ -108,11 +122,14 @@ const Definition &Resolve(const Config &config, std::string_view scene_id) {
 }
 
 std::string DisplayLabel(const Definition &scene) {
-  if (const char *builtin_label = BuiltinSceneLabel(scene.id)) {
+  if (const char *builtin_label = BuiltinSceneLabelFromKey(scene.label)) {
     return builtin_label;
   }
   if (!scene.label.empty()) {
     return scene.label;
+  }
+  if (const char *builtin_label = BuiltinSceneLabel(scene.id)) {
+    return builtin_label;
   }
   return scene.id;
 }

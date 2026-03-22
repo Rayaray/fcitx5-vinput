@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "capture_device": "default",
+  "registry": {
+    "sources": [
+      {
+        "name": "github",
+        "url": "https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+      },
+      {
+        "name": "gh-proxy",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+      },
+      {
+        "name": "ghfast",
+        "url": "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+      }
+    ]
+  },
+  "default_language": "zh",
+  "llm": {
+    "providers": [],
+    "adaptors": []
+  },
+  "asr": {
+    "active_provider": "sherpa-onnx",
+    "normalize_audio": true,
+    "vad": {
+      "enabled": true
+    },
+    "providers": [
+      {
+        "name": "sherpa-onnx",
+        "type": "local",
+        "builtin": true,
+        "timeout_ms": 15000
+      },
+      {
+        "name": "elevenlabs",
+        "type": "command",
+        "builtin": true,
+        "command": "python3",
+        "args": [
+          "${VINPUT_ASR_PROVIDER_DIR}/elevenlabs_speech_to_text.py"
+        ],
+        "env": {},
+        "timeout_ms": 60000
+      }
+    ]
+  },
+  "scenes": {
+    "active_scene": "__raw__",
+    "definitions": [
+      {
+        "id": "__raw__",
+        "label": "__label_raw__",
+        "candidate_count": 0,
+        "builtin": true
+      },
+      {
+        "id": "__command__",
+        "label": "__label_command__",
+        "prompt": "# Command Mode Prompt\n\n## Role\n\nYou are an assistant that applies a spoken command to the user-provided text.\n\n## Context\n\n- The user message is the source text to operate on.\n- The spoken command may contain ASR errors.\n- The spoken command is appended at runtime in the `## Task` section.\n\n## Task\n",
+        "builtin": true
+      }
+    ]
+  }
+}

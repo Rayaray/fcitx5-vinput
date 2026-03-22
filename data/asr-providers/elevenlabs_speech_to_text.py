@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# ==vinput-extension==
+# ==vinput-asr-provider==
 # @name ElevenLabs Speech to Text
-# @type asr
-# @description Cloud ASR via ElevenLabs API
+# @description 通过 ElevenLabs API 调用云端 ASR
 # @author xifan
 # @version 1.0.0
 # @env ELEVENLABS_API_KEY (required)
@@ -10,22 +9,22 @@
 # @env ELEVENLABS_LANGUAGE (optional)
 # @env ELEVENLABS_URL (optional)
 # @env ELEVENLABS_TIMEOUT (optional)
-# ==/vinput-extension==
-"""ElevenLabs speech-to-text command provider for vinput.
+# ==/vinput-asr-provider==
+"""vinput 的 ElevenLabs 语音转文字命令式 provider。
 
-Reads one utterance of raw PCM S16_LE 16 kHz mono audio from stdin and writes
-the final transcript to stdout.
+从 stdin 读取一段原始 PCM S16_LE 16 kHz 单声道音频，并将最终识别文本
+写入 stdout。
 
-Environment:
-    ELEVENLABS_API_KEY      Required API key.
-    ELEVENLABS_MODEL_ID     Optional. Defaults to "scribe_v2".
-    ELEVENLABS_LANGUAGE     Optional ISO-639 language code.
-    ELEVENLABS_URL          Optional endpoint override.
-    ELEVENLABS_TIMEOUT      Optional request timeout in seconds.
+环境变量：
+    ELEVENLABS_API_KEY      必填，API Key。
+    ELEVENLABS_MODEL_ID     可选，默认值为 "scribe_v2"。
+    ELEVENLABS_LANGUAGE     可选，ISO-639 语言代码。
+    ELEVENLABS_URL          可选，自定义接口地址。
+    ELEVENLABS_TIMEOUT      可选，请求超时时间，单位为秒。
 
-Example:
+示例：
     ELEVENLABS_API_KEY=... \
-    python3 extensions/asr/elevenlabs_speech_to_text.py
+    python3 data/asr-providers/elevenlabs_speech_to_text.py
 """
 
 import json

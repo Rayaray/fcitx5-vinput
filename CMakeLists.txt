@@ -4,6 +4,14 @@ set(VINPUT_PROJECT_VERSION "1.1.1"
     CACHE STRING "Project version for builds and release artifacts")
 project(fcitx5-vinput VERSION ${VINPUT_PROJECT_VERSION} LANGUAGES CXX)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    # Fcitx5 discovers addons from its system prefix. Keep the source-build
+    # default aligned so `cmake --install` produces a visible addon.
+    set(CMAKE_INSTALL_PREFIX "/usr"
+        CACHE PATH "Install path prefix, prepended onto install directories."
+        FORCE)
+endif()
+
 include(GNUInstallDirs)
 
 set(VINPUT_PACKAGE_RELEASE "1"
@@ -41,12 +49,20 @@ set(VINPUT_DBUS_SERVICE_DIR
 set(VINPUT_RUNTIME_LIBDIR
     "${CMAKE_INSTALL_LIBDIR}/fcitx5-vinput"
     CACHE PATH "Install directory for bundled sherpa-onnx runtime libraries")
-set(VINPUT_EXTENSION_DIR
-    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/extensions"
-    CACHE PATH "Install directory for built-in extension scripts")
-option(VINPUT_BUNDLE_SHERPA_RUNTIME
-    "Install bundled sherpa-onnx runtime libraries with vinput-daemon"
-    ON)
+set(VINPUT_ASR_PROVIDER_DIR
+    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/asr-providers"
+    CACHE PATH "Install directory for built-in ASR provider scripts")
+set(VINPUT_LLM_ADAPTOR_DIR
+    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/llm-adaptors"
+    CACHE PATH "Install directory for built-in LLM adaptor scripts")
+set(VINPUT_RUNTIME_MODE "bundled"
+    CACHE STRING "Runtime library mode for vinput-daemon: system or bundled")
+set_property(CACHE VINPUT_RUNTIME_MODE PROPERTY STRINGS system bundled)
+if(NOT VINPUT_RUNTIME_MODE STREQUAL "system" AND
+   NOT VINPUT_RUNTIME_MODE STREQUAL "bundled")
+    message(FATAL_ERROR
+        "VINPUT_RUNTIME_MODE must be either 'system' or 'bundled'")
+endif()
 set(VINPUT_DAEMON_EXECUTABLE
     "${CMAKE_INSTALL_FULL_BINDIR}/vinput-daemon")
 
@@ -54,6 +70,11 @@ configure_file(
     ${CMAKE_SOURCE_DIR}/src/common/config.h.in
     ${CMAKE_BINARY_DIR}/config.h
     @ONLY)
+
+install(FILES
+    ${CMAKE_SOURCE_DIR}/data/default-config.json
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput
+)
 
 include_directories(${CMAKE_BINARY_DIR})
 

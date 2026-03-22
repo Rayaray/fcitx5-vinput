@@ -143,8 +143,7 @@ fs::path ModelManager::NormalizeBaseDir(const std::string &raw_path) {
 ModelManager::ModelManager(const std::string &base_dir,
                            const std::string &model_name) {
   base_dir_ = NormalizeBaseDir(base_dir).string();
-  model_name_ =
-      model_name.empty() ? vinput::asr::kDefaultBuiltinModel : model_name;
+  model_name_ = model_name;
 }
 
 bool ModelManager::EnsureModels() {

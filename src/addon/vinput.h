@@ -54,6 +54,16 @@ private:
   void onStatusChanged(fcitx::dbus::Message &msg);
   void onDaemonError(fcitx::dbus::Message &msg);
   void notifyError(const std::string &message);
+  std::string queryDaemonStatus() const;
+  void ensureStatusSync();
+  void stopStatusSyncIfIdle();
+  void enterRecordingState(fcitx::InputContext *ic, const fcitx::Key &trigger,
+                           bool command_mode);
+  void enterBusyState(fcitx::InputContext *ic, bool command_mode,
+                      const std::string &preedit_text);
+  void finishFrontendSession(fcitx::InputContext *fallback_ic = nullptr);
+  void syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic = nullptr,
+                                    bool prefer_command_mode = false);
   void updatePreedit(fcitx::InputContext *ic, const std::string &text);
   void clearPreedit(fcitx::InputContext *ic);
 
@@ -73,6 +83,7 @@ private:
     bool command_mode = false;
   };
   std::optional<Session> session_;
+  fcitx::InputContext *status_ic_ = nullptr;
   fcitx::InputContext *scene_menu_ic_ = nullptr;
   fcitx::InputContext *result_menu_ic_ = nullptr;
   fcitx::KeyList trigger_keys_{fcitx::Key(FcitxKey_Control_R)};
@@ -94,6 +105,7 @@ private:
   bool result_is_command_ = false;
   std::chrono::steady_clock::time_point last_trigger_time_;
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
+  std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;
   mutable std::unique_ptr<VinputConfig> ui_config_;
 };

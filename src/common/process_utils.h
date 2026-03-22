@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <map>
 #include <span>
 #include <string>
+#include <sys/types.h>
 #include <vector>
-
-#include "common/asr_defaults.h"
 
 namespace vinput::process {
 
@@ -14,7 +14,7 @@ struct CommandSpec {
   std::string command;
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
-  int timeout_ms = vinput::asr::kDefaultProviderTimeoutMs;
+  int timeout_ms = 0;
 };
 
 struct CommandResult {
@@ -27,5 +27,8 @@ struct CommandResult {
 
 CommandResult RunCommandWithInput(const CommandSpec &spec,
                                   std::span<const std::byte> input);
+bool SpawnDetached(const CommandSpec &spec,
+                   const std::filesystem::path &working_dir, pid_t *pid_out,
+                   std::string *error);
 
 }  // namespace vinput::process

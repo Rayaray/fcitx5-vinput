@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Install pre-built sherpa-onnx shared libraries from a local archive or
-# from the upstream release after checksum verification.
+# from the upstream release after checksum verification (via GitHub API digest).
 # Usage: build-sherpa-onnx.sh [version] [prefix] [archive_path]
-# Override SHERPA_ONNX_SHA256 when using a version that is not pinned here.
 set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -23,14 +22,18 @@ if [[ -z "${archive_path}" ]]; then
     curl -fL --retry 3 --retry-delay 2 -o "${archive_path}" "${SHERPA_ONNX_URL}"
 fi
 
-if [[ -z "${SHERPA_ONNX_SHA256:-}" ]]; then
-    echo "Missing SHERPA_ONNX_SHA256 for ${SHERPA_ONNX_ARCHIVE}; refusing to extract an unverified archive." >&2
-    exit 1
+expected_sha256="${SHERPA_ONNX_SHA256:-}"
+if [[ -z "${expected_sha256}" ]]; then
+    echo "Fetching digest from GitHub API..." >&2
+    expected_sha256="$(sherpa_onnx_fetch_digest "${version}" "${SHERPA_ONNX_ARCHIVE}")" || {
+        echo "Failed to fetch digest for ${SHERPA_ONNX_ARCHIVE} from GitHub API." >&2
+        exit 1
+    }
 fi
 
 actual_sha256="$(sha256sum "${archive_path}" | awk '{print $1}')"
-if [[ "${actual_sha256}" != "${SHERPA_ONNX_SHA256}" ]]; then
-    echo "Checksum mismatch for ${archive_path}: expected ${SHERPA_ONNX_SHA256}, got ${actual_sha256}" >&2
+if [[ "${actual_sha256}" != "${expected_sha256}" ]]; then
+    echo "Checksum mismatch for ${archive_path}: expected ${expected_sha256}, got ${actual_sha256}" >&2
     exit 1
 fi
 

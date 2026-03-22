@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "common/core_config.h"
+#include "common/file_utils.h"
 #include "common/i18n.h"
 #include "common/path_utils.h"
 #include "common/string_utils.h"
@@ -19,18 +20,12 @@ int RunInit(bool force, Formatter& fmt, const CliContext& ctx) {
         fmt.PrintInfo(
             vinput::str::FmtStr(_("Config already exists: %s"), config_path.string()));
     } else {
+        std::string load_error;
         CoreConfig config;
-        config.scenes.activeScene = std::string(vinput::scene::kRawSceneId);
-        config.scenes.definitions = {
-            vinput::scene::Definition{
-                .id = std::string(vinput::scene::kRawSceneId),
-                .label = "",
-                .prompt = "",
-                .provider_id = "",
-                .model = "",
-                .candidate_count = 0,
-            },
-        };
+        if (!LoadBundledDefaultCoreConfig(&config, &load_error)) {
+            fmt.PrintError(load_error);
+            return 1;
+        }
         if (SaveCoreConfig(config)) {
             fmt.PrintSuccess(
                 vinput::str::FmtStr(_("Created config: %s"), config_path.string()));

@@ -11,38 +11,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-ubuntu:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            pkg-config \
-            gettext \
-            curl \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libarchive-dev \
-            libpipewire-0.3-dev \
-            libsystemd-dev \
-            libfcitx5core-dev \
-            libfcitx5config-dev \
-            libfcitx5utils-dev \
-            fcitx5-modules-dev \
-            nlohmann-json3-dev \
-            qtbase5-dev \
-            qttools5-dev
+        run: ./scripts/ci-install-build-deps.sh ubuntu24.04
 
-      - name: Install pre-built sherpa-onnx
-        run: sudo bash scripts/build-sherpa-onnx.sh && sudo ldconfig
+      - name: Install sherpa-onnx build runtime
+        shell: bash
+        run: |
+          prefix="${RUNNER_TEMP}/sherpa-onnx-install"
+          source scripts/sherpa-onnx-vars.sh
+          bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
+          echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
+
+      - name: Check i18n
+        run: python3 scripts/check-i18n.py
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
+
+      - name: Build
+        run: cmake --build build
+
+  build-containers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: debian-12
+            image: debian:12
+            target: debian12
+          - name: fedora-43
+            image: fedora:43
+            target: fedora43
+          - name: archlinux
+            image: archlinux:base-devel
+            target: archlinux
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: ./scripts/ci-install-build-deps.sh "${{ matrix.target }}"
+
+      - name: Install sherpa-onnx build runtime
+        shell: bash
+        run: |
+          prefix="${GITHUB_WORKSPACE}/.deps/sherpa-onnx-install"
+          source scripts/sherpa-onnx-vars.sh
+          bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
+          echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
 
       - name: Build
         run: cmake --build build

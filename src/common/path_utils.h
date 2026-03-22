@@ -9,4 +9,7 @@ std::filesystem::path CoreConfigPath();
 std::filesystem::path UserExtensionDir();
 std::filesystem::path ExtensionRuntimeDir();
 bool isInsideFlatpak();
+std::filesystem::path UserAsrProviderDir();
+std::filesystem::path UserLlmAdaptorDir();
+std::filesystem::path AdaptorRuntimeDir();
 } // namespace vinput::path

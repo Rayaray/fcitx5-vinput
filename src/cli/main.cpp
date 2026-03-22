@@ -9,17 +9,35 @@
 #include "cli/command_device.h"
 #include "cli/command_hotword.h"
 #include "cli/command_init.h"
+#include "cli/command_adaptor.h"
 #include "cli/command_asr.h"
-#include "cli/command_extension.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
 #include "cli/command_recording.h"
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
 #include "cli/formatter.h"
-#include "common/asr_defaults.h"
+#include "common/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
+
+namespace {
+
+AsrProvider LoadDefaultAsrProviderTemplate() {
+  CoreConfig config;
+  std::string error;
+  if (!LoadBundledDefaultCoreConfig(&config, &error)) {
+    return {};
+  }
+
+  if (!config.asr.providers.empty()) {
+    return config.asr.providers.front();
+  }
+
+  return {};
+}
+
+}  // namespace
 
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
@@ -137,18 +155,21 @@ int main(int argc, char *argv[]) {
       asr_cmd->add_subcommand("list", _("List configured ASR providers"));
   asr_list->alias("ls");
 
+  const AsrProvider asr_add_default = LoadDefaultAsrProviderTemplate();
   std::string asr_add_name;
-  std::string asr_add_type = vinput::asr::kBuiltinProviderType;
+  std::string asr_add_type = asr_add_default.type.empty()
+                                 ? std::string(vinput::asr::kLocalProviderType)
+                                 : asr_add_default.type;
   std::string asr_add_model;
   std::string asr_add_command;
   std::vector<std::string> asr_add_args;
   std::vector<std::string> asr_add_env;
-  int asr_add_timeout_ms = vinput::asr::kDefaultProviderTimeoutMs;
+  int asr_add_timeout_ms = asr_add_default.timeoutMs;
   auto *asr_add = asr_cmd->add_subcommand("add", _("Add an ASR provider"));
   asr_add->add_option("name", asr_add_name, _("Provider name"))->required();
-  asr_add->add_option("--type", asr_add_type, _("Provider type: builtin or command"))
-      ->default_val(vinput::asr::kBuiltinProviderType);
-  asr_add->add_option("-m,--model", asr_add_model, _("Builtin model name"));
+  asr_add->add_option("--type", asr_add_type, _("Provider type: local or command"))
+      ->default_val(asr_add_type);
+  asr_add->add_option("-m,--model", asr_add_model, _("Local model name"));
   asr_add->add_option("-c,--command", asr_add_command,
                       _("Command or executable path for command providers"));
   asr_add->add_option("--arg", asr_add_args, _("Command argument"))
@@ -158,7 +179,7 @@ int main(int argc, char *argv[]) {
   asr_add
       ->add_option("--timeout", asr_add_timeout_ms,
                    _("Provider timeout in milliseconds"))
-      ->default_val(vinput::asr::kDefaultProviderTimeoutMs);
+      ->default_val(asr_add_timeout_ms);
 
   std::string asr_remove_name;
   bool asr_remove_force = false;
@@ -177,27 +198,26 @@ int main(int argc, char *argv[]) {
       asr_cmd->add_subcommand("edit", _("Open an external ASR provider script"));
   asr_edit->add_option("name", asr_edit_name, _("Provider name"))->required();
 
-  // ---- extension subcommand ----
-  auto *extension_cmd =
-      app.add_subcommand("extension", _("Manage built-in and user extensions"));
-  extension_cmd->alias("ext");
-  extension_cmd->require_subcommand(1);
+  // ---- adaptor subcommand ----
+  auto *adaptor_cmd =
+      app.add_subcommand("adaptor", _("Manage built-in and user LLM adaptors"));
+  adaptor_cmd->require_subcommand(1);
 
-  auto *extension_list =
-      extension_cmd->add_subcommand("list", _("List available extensions"));
-  extension_list->alias("ls");
+  auto *adaptor_list =
+      adaptor_cmd->add_subcommand("list", _("List available LLM adaptors"));
+  adaptor_list->alias("ls");
 
-  std::string extension_start_name;
-  auto *extension_start =
-      extension_cmd->add_subcommand("start", _("Start an LLM extension"));
-  extension_start->add_option("name", extension_start_name,
-                              _("Extension ID"))->required();
+  std::string adaptor_start_name;
+  auto *adaptor_start =
+      adaptor_cmd->add_subcommand("start", _("Start an LLM adaptor"));
+  adaptor_start->add_option("name", adaptor_start_name,
+                            _("Adaptor ID"))->required();
 
-  std::string extension_stop_name;
-  auto *extension_stop =
-      extension_cmd->add_subcommand("stop", _("Stop an LLM extension"));
-  extension_stop->add_option("name", extension_stop_name,
-                             _("Extension ID"))->required();
+  std::string adaptor_stop_name;
+  auto *adaptor_stop =
+      adaptor_cmd->add_subcommand("stop", _("Stop an LLM adaptor"));
+  adaptor_stop->add_option("name", adaptor_stop_name,
+                           _("Adaptor ID"))->required();
 
   // ---- config subcommand ----
   auto *config_cmd =
@@ -378,13 +398,13 @@ int main(int argc, char *argv[]) {
     return RunAsrEdit(asr_edit_name, *fmt, ctx);
   }
 
-  // extension
-  else if (extension_list->parsed()) {
-    return RunExtensionList(*fmt, ctx);
-  } else if (extension_start->parsed()) {
-    return RunExtensionStart(extension_start_name, *fmt, ctx);
-  } else if (extension_stop->parsed()) {
-    return RunExtensionStop(extension_stop_name, *fmt, ctx);
+  // adaptor
+  else if (adaptor_list->parsed()) {
+    return RunAdaptorList(*fmt, ctx);
+  } else if (adaptor_start->parsed()) {
+    return RunAdaptorStart(adaptor_start_name, *fmt, ctx);
+  } else if (adaptor_stop->parsed()) {
+    return RunAdaptorStop(adaptor_stop_name, *fmt, ctx);
   }
 
   // hotword

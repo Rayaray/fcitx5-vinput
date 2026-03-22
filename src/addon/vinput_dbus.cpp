@@ -26,6 +26,7 @@ constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr const char *kDaemonUnitName = "vinput-daemon.service";
 constexpr const char *kReplaceMode = "replace";
 constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
+constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
 
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
@@ -75,10 +76,8 @@ void VinputEngine::callStartRecording() {
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
     fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
-    auto *ic = session_ ? session_->ic : nullptr;
-    session_.reset();
-    if (ic)
-      clearPreedit(ic);
+    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
+                                 false);
   }
 }
 
@@ -91,10 +90,8 @@ void VinputEngine::callStartCommandRecording(const std::string &selected_text) {
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
     fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
-    auto *ic = session_ ? session_->ic : nullptr;
-    session_.reset();
-    if (ic)
-      clearPreedit(ic);
+    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
+                                 true);
   }
 }
 
@@ -107,11 +104,146 @@ void VinputEngine::callStopRecording(const std::string &scene_id) {
   auto reply = msg.call(kDaemonCallTimeoutUsec);
   if (!reply || reply.isError()) {
     fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
-    auto *ic = session_ ? session_->ic : nullptr;
-    session_.reset();
-    if (ic)
-      clearPreedit(ic);
+    syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
+                                 session_ ? session_->command_mode : false);
   }
+}
+
+void VinputEngine::ensureStatusSync() {
+  const bool needs_sync = session_.has_value() || status_ic_ != nullptr;
+  if (!needs_sync) {
+    stopStatusSyncIfIdle();
+    return;
+  }
+
+  if (!status_sync_event_) {
+    status_sync_event_ = instance_->eventLoop().addTimeEvent(
+        CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kStatusSyncIntervalUsec, 0,
+        [this](fcitx::EventSourceTime *event, uint64_t) {
+          syncFrontendWithDaemonStatus();
+          if (!(session_.has_value() || status_ic_ != nullptr)) {
+            return false;
+          }
+          event->setNextInterval(kStatusSyncIntervalUsec);
+          return true;
+        });
+    return;
+  }
+
+  status_sync_event_->setTime(fcitx::now(CLOCK_MONOTONIC) +
+                              kStatusSyncIntervalUsec);
+  status_sync_event_->setEnabled(true);
+}
+
+void VinputEngine::stopStatusSyncIfIdle() {
+  if (status_sync_event_ && !(session_.has_value() || status_ic_ != nullptr)) {
+    status_sync_event_->setEnabled(false);
+  }
+}
+
+void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
+                                       const fcitx::Key &trigger,
+                                       bool command_mode) {
+  if (!ic) {
+    return;
+  }
+  if (status_ic_ && status_ic_ != ic) {
+    clearPreedit(status_ic_);
+  }
+  if (!session_) {
+    session_.emplace(Session{Session::Phase::Recording, ic, trigger,
+                             std::chrono::steady_clock::now(), command_mode});
+  } else {
+    session_->phase = Session::Phase::Recording;
+    session_->ic = ic;
+    session_->trigger = trigger;
+    session_->command_mode = command_mode;
+  }
+  status_ic_ = ic;
+  updatePreedit(ic, command_mode ? CommandingPreeditText() : RecordingPreeditText());
+  ensureStatusSync();
+}
+
+void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
+                                  const std::string &preedit_text) {
+  if (!ic) {
+    return;
+  }
+  if (status_ic_ && status_ic_ != ic) {
+    clearPreedit(status_ic_);
+  }
+  if (!session_) {
+    session_.emplace(Session{Session::Phase::Busy, ic, fcitx::Key(),
+                             std::chrono::steady_clock::now(), command_mode});
+  } else {
+    session_->phase = Session::Phase::Busy;
+    session_->ic = ic;
+    session_->trigger = fcitx::Key();
+    session_->command_mode = command_mode;
+  }
+  status_ic_ = ic;
+  updatePreedit(ic, preedit_text);
+  ensureStatusSync();
+}
+
+void VinputEngine::finishFrontendSession(fcitx::InputContext *fallback_ic) {
+  auto *ic = session_ ? session_->ic
+                      : (fallback_ic ? fallback_ic : status_ic_);
+  session_.reset();
+  if (status_ic_ == ic) {
+    status_ic_ = nullptr;
+  }
+  if (ic) {
+    clearPreedit(ic);
+  }
+  stopStatusSyncIfIdle();
+}
+
+std::string VinputEngine::queryDaemonStatus() const {
+  if (!bus_) {
+    return {};
+  }
+
+  auto msg =
+      bus_->createMethodCall(kBusName, kObjectPath, kInterface, kMethodGetStatus);
+  auto reply = msg.call(kDaemonCallTimeoutUsec);
+  if (!reply || reply.isError()) {
+    return {};
+  }
+
+  std::string status;
+  reply >> status;
+  return status;
+}
+
+void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
+                                                bool prefer_command_mode) {
+  const std::string status = queryDaemonStatus();
+  auto *ic = session_ ? session_->ic
+                      : (fallback_ic ? fallback_ic : status_ic_);
+  if (!ic) {
+    return;
+  }
+
+  if (status == kStatusRecording) {
+    enterRecordingState(ic, session_ ? session_->trigger : fcitx::Key(),
+                        session_ ? session_->command_mode : prefer_command_mode);
+    return;
+  }
+
+  if (status == kStatusInferring) {
+    enterBusyState(ic, session_ ? session_->command_mode : prefer_command_mode,
+                   InferringPreeditText());
+    return;
+  }
+
+  if (status == kStatusPostprocessing) {
+    enterBusyState(ic, session_ ? session_->command_mode : prefer_command_mode,
+                   PostprocessingPreeditText());
+    return;
+  }
+
+  finishFrontendSession(ic);
 }
 
 void VinputEngine::restartDaemon() {
@@ -144,9 +276,9 @@ void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
   std::string payload_text;
   msg >> payload_text;
 
-  const bool is_command = session_ && session_->command_mode;
-  auto *ic = session_ ? session_->ic : nullptr;
-  session_.reset();
+  const bool has_session = session_.has_value();
+  const bool is_command = has_session && session_->command_mode;
+  auto *ic = has_session ? session_->ic : status_ic_;
 
   if (!ic) {
     return;
@@ -155,7 +287,11 @@ void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
   hideResultMenu();
 
   const auto payload = vinput::result::Parse(payload_text);
-  clearPreedit(ic);
+  finishFrontendSession(ic);
+
+  if (!has_session) {
+    return;
+  }
 
   if (payload.commitText.empty()) {
     return;
@@ -190,22 +326,21 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   std::string status;
   msg >> status;
 
-  if (!session_)
-    return;
-
-  auto *ic = session_->ic;
+  auto *ic = session_ ? session_->ic : status_ic_;
   if (!ic)
     return;
 
   if (status == kStatusRecording) {
-    updatePreedit(ic, session_->command_mode ? CommandingPreeditText() : RecordingPreeditText());
+    enterRecordingState(ic, session_ ? session_->trigger : fcitx::Key(),
+                        session_ ? session_->command_mode : false);
   } else if (status == kStatusInferring) {
-    updatePreedit(ic, InferringPreeditText());
+    enterBusyState(ic, session_ ? session_->command_mode : false,
+                   InferringPreeditText());
   } else if (status == kStatusPostprocessing) {
-    updatePreedit(ic, PostprocessingPreeditText());
+    enterBusyState(ic, session_ ? session_->command_mode : false,
+                   PostprocessingPreeditText());
   } else {
-    session_.reset();
-    clearPreedit(ic);
+    finishFrontendSession(ic);
   }
 }
 
@@ -217,12 +352,9 @@ void VinputEngine::onDaemonError(fcitx::dbus::Message &msg) {
     return;
   }
 
-  auto *ic = session_ ? session_->ic : nullptr;
-  session_.reset();
+  auto *ic = session_ ? session_->ic : status_ic_;
   hideResultMenu();
-  if (ic) {
-    clearPreedit(ic);
-  }
+  finishFrontendSession(ic);
 
   notifyError(error_message);
 }

@@ -19,12 +19,6 @@ constexpr auto kReleaseDebounce = std::chrono::milliseconds(500);
 constexpr auto kToggleThreshold = std::chrono::milliseconds(300);
 constexpr auto kTriggerDebounce = std::chrono::milliseconds(80);
 
-std::string RecordingPreeditText() { return _("... Recording ..."); }
-
-std::string CommandingPreeditText() { return _("... Commanding ..."); }
-
-std::string InferringPreeditText() { return _("... Recognizing ..."); }
-
 std::string NoSelectionPreeditText() { return _("Please select text first."); }
 
 std::string CommandDisabledPreeditText() { return _("Command mode is disabled (candidate count is 0)."); }
@@ -81,15 +75,21 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       return;
     }
     if (session_) {
-      // Previous session still active, ignore
-      keyEvent.filterAndAccept();
-      return;
+      syncFrontendWithDaemonStatus(session_->ic, session_->command_mode);
+      if (session_) {
+        keyEvent.filterAndAccept();
+        return;
+      }
     }
     auto *ic = keyEvent.inputContext();
     auto trigger = is_trigger ? trigger_keys_[trigger_index]
                               : command_keys_[command_index];
-    session_.emplace(Session{Session::Phase::Recording, ic, trigger,
-                             std::chrono::steady_clock::now(), is_command});
+    const std::string daemon_status = queryDaemonStatus();
+    if (!daemon_status.empty() && daemon_status != vinput::dbus::kStatusIdle) {
+      syncFrontendWithDaemonStatus(ic, is_command);
+      keyEvent.filterAndAccept();
+      return;
+    }
     hideResultMenu();
 
     if (is_command) {
@@ -98,14 +98,14 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         auto core_config = LoadCoreConfig();
         const auto *cmd_scene = FindCommandScene(core_config);
         if (!cmd_scene || cmd_scene->candidate_count <= 0) {
-          session_.reset();
+          finishFrontendSession(ic);
           updatePreedit(ic, CommandDisabledPreeditText());
           keyEvent.filterAndAccept();
           return;
         }
         if (cmd_scene->provider_id.empty() ||
             ResolveLlmProvider(core_config, cmd_scene->provider_id) == nullptr) {
-          session_.reset();
+          finishFrontendSession(ic);
           updatePreedit(ic, CommandNoProviderPreeditText());
           keyEvent.filterAndAccept();
           return;
@@ -133,22 +133,24 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         }
       }
       if (selected_text.empty()) {
-        session_.reset();
+        if (status_ic_ == ic) {
+          finishFrontendSession(ic);
+        } else {
+          clearPreedit(ic);
+        }
         updatePreedit(ic, NoSelectionPreeditText());
         keyEvent.filterAndAccept();
         return;
       }
+      enterRecordingState(ic, trigger, true);
       FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
       callStartCommandRecording(selected_text);
-      if (session_) {
-        updatePreedit(session_->ic, CommandingPreeditText());
-      }
+      syncFrontendWithDaemonStatus(ic, true);
     } else {
+      enterRecordingState(ic, trigger, false);
       FCITX_LOG(Info) << "vinput: trigger key pressed";
       callStartRecording();
-      if (session_) {
-        updatePreedit(session_->ic, RecordingPreeditText());
-      }
+      syncFrontendWithDaemonStatus(ic, false);
     }
     keyEvent.filterAndAccept();
     return;
@@ -238,8 +240,5 @@ void VinputEngine::finishStopRecording() {
   session_->phase = Session::Phase::Busy;
   session_->trigger = fcitx::Key();
   callStopRecording(scene.id);
-  // Only update preedit if still Busy (callStopRecording may have reset session on error)
-  if (session_ && session_->phase == Session::Phase::Busy) {
-    updatePreedit(session_->ic, InferringPreeditText());
-  }
+  syncFrontendWithDaemonStatus(session_->ic, session_->command_mode);
 }

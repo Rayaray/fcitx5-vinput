@@ -80,18 +80,8 @@ bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
   return true;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// ModelRepository
-// ---------------------------------------------------------------------------
-
-ModelRepository::ModelRepository(const std::string &base_dir)
-    : base_dir_(base_dir) {}
-
-std::vector<RemoteModelEntry>
-ModelRepository::FetchRegistry(const std::string &registry_url,
-                               std::string *error) const {
+std::vector<RemoteModelEntry> FetchRegistryOnce(const std::string &registry_url,
+                                                std::string *error) {
   std::vector<RemoteModelEntry> entries;
 
   CURL *curl = curl_easy_init();
@@ -165,13 +155,71 @@ ModelRepository::FetchRegistry(const std::string &registry_url,
   return entries;
 }
 
+} // namespace
+
+// ---------------------------------------------------------------------------
+// ModelRepository
+// ---------------------------------------------------------------------------
+
+ModelRepository::ModelRepository(const std::string &base_dir)
+    : base_dir_(base_dir) {}
+
+std::vector<RemoteModelEntry>
+ModelRepository::FetchRegistry(const std::string &registry_url,
+                               std::string *error) const {
+  return FetchRegistryOnce(registry_url, error);
+}
+
+std::vector<RemoteModelEntry> ModelRepository::FetchRegistry(
+    const std::vector<std::string> &registry_urls, std::string *error,
+    std::string *resolved_registry_url) const {
+  std::vector<RemoteModelEntry> entries;
+  if (registry_urls.empty()) {
+    if (error) *error = "no registry URLs configured";
+    return entries;
+  }
+
+  std::string last_error;
+  for (const auto &registry_url : registry_urls) {
+    if (registry_url.empty()) {
+      continue;
+    }
+    entries = FetchRegistryOnce(registry_url, &last_error);
+    if (!entries.empty()) {
+      if (resolved_registry_url) {
+        *resolved_registry_url = registry_url;
+      }
+      if (error) {
+        error->clear();
+      }
+      return entries;
+    }
+  }
+
+  if (error) {
+    *error = last_error.empty() ? "failed to fetch registry from all sources"
+                                : last_error;
+  }
+  return entries;
+}
+
 bool ModelRepository::InstallModel(const std::string &registry_url,
                                    const std::string &model_name,
                                    ProgressCallback progress_cb,
                                    std::string *error) const {
+  return InstallModel(std::vector<std::string>{registry_url}, model_name,
+                      std::move(progress_cb), error, nullptr);
+}
+
+bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls,
+                                   const std::string &model_name,
+                                   ProgressCallback progress_cb,
+                                   std::string *error,
+                                   std::string *resolved_registry_url) const {
   // Fetch registry
   std::string fetch_err;
-  auto entries = FetchRegistry(registry_url, &fetch_err);
+  auto entries =
+      FetchRegistry(registry_urls, &fetch_err, resolved_registry_url);
   if (!fetch_err.empty()) {
     if (error) *error = fetch_err;
     return false;

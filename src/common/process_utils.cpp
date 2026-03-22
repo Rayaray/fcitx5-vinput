@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <spawn.h>
+#include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -81,6 +82,18 @@ void CloseIfOpen(int *fd) {
     close(*fd);
     *fd = -1;
   }
+}
+
+bool ApplyEnvironment(const CommandSpec &spec) {
+  for (const auto &[key, value] : spec.env) {
+    if (key.empty()) {
+      continue;
+    }
+    if (setenv(key.c_str(), value.c_str(), 1) != 0) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace
@@ -337,6 +350,60 @@ CommandResult RunCommandWithInput(const CommandSpec &spec,
   }
 
   return result;
+}
+
+bool SpawnDetached(const CommandSpec &spec,
+                   const std::filesystem::path &working_dir, pid_t *pid_out,
+                   std::string *error) {
+  if (pid_out) {
+    *pid_out = -1;
+  }
+  if (spec.command.empty()) {
+    if (error) {
+      *error = "Command is empty.";
+    }
+    return false;
+  }
+
+  std::vector<std::string> argv_storage;
+  std::vector<char *> argv = BuildArgv(spec, &argv_storage);
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    if (error) {
+      *error = std::string("fork failed: ") + std::strerror(errno);
+    }
+    return false;
+  }
+
+  if (pid == 0) {
+    const int devnull = open("/dev/null", O_RDONLY);
+    if (devnull >= 0) {
+      dup2(devnull, STDIN_FILENO);
+      close(devnull);
+    }
+
+    setsid();
+
+    if (!working_dir.empty()) {
+      chdir(working_dir.c_str());
+    }
+
+    if (!ApplyEnvironment(spec)) {
+      _exit(127);
+    }
+
+    execvp(spec.command.c_str(), argv.data());
+    _exit(127);
+  }
+
+  if (pid_out) {
+    *pid_out = pid;
+  }
+  if (error) {
+    error->clear();
+  }
+  return true;
 }
 
 }  // namespace vinput::process

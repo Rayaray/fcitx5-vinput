@@ -112,6 +112,10 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
         if (session_ && session_->ic == ic) {
           session_.reset();
         }
+        if (status_ic_ == ic) {
+          status_ic_ = nullptr;
+          stopStatusSyncIfIdle();
+        }
         if (scene_menu_ic_ == ic) {
           hideSceneMenu();
         }

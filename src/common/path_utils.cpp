@@ -40,28 +40,39 @@ std::filesystem::path CoreConfigPath() {
          "config.json";
 }
 
-std::filesystem::path UserExtensionDir() {
+std::filesystem::path UserAsrProviderDir() {
   const char *xdg = std::getenv("XDG_CONFIG_HOME");
   if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "extensions";
+    return std::filesystem::path(xdg) / "vinput" / "asr-providers";
   }
   const char *home = std::getenv("HOME");
   if (!home || home[0] == '\0')
     return {};
-  return std::filesystem::path(home) / ".config" / "vinput" / "extensions";
+  return std::filesystem::path(home) / ".config" / "vinput" / "asr-providers";
 }
 
-std::filesystem::path ExtensionRuntimeDir() {
+std::filesystem::path UserLlmAdaptorDir() {
+  const char *xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg) / "vinput" / "llm-adaptors";
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0')
+    return {};
+  return std::filesystem::path(home) / ".config" / "vinput" / "llm-adaptors";
+}
+
+std::filesystem::path AdaptorRuntimeDir() {
   const char *xdg_runtime = std::getenv("XDG_RUNTIME_DIR");
   if (xdg_runtime && xdg_runtime[0] != '\0') {
-    return std::filesystem::path(xdg_runtime) / "vinput" / "extensions";
+    return std::filesystem::path(xdg_runtime) / "vinput" / "adaptors";
   }
 
   const char *tmpdir = std::getenv("TMPDIR");
   std::filesystem::path base =
       (tmpdir && tmpdir[0] != '\0') ? std::filesystem::path(tmpdir)
                                     : std::filesystem::path("/tmp");
-  return base / "vinput" / "extensions";
+  return base / "vinput" / "adaptors";
 }
 
 bool isInsideFlatpak() {

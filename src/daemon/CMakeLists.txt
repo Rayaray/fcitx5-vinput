@@ -10,7 +10,7 @@ set(VINPUT_DBUS_SERVICE_FILE
     "${CMAKE_CURRENT_BINARY_DIR}/org.fcitx.Vinput.service")
 
 get_filename_component(SHERPA_ONNX_RUNTIME_DIR "${SHERPA_ONNX_CXX_LIB}" DIRECTORY)
-if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
     if(IS_ABSOLUTE "${VINPUT_RUNTIME_LIBDIR}")
         set(VINPUT_DAEMON_INSTALL_RPATH "${VINPUT_RUNTIME_LIBDIR}")
     else()
@@ -54,7 +54,7 @@ target_link_libraries(vinput-daemon PRIVATE
 set_target_properties(vinput-daemon PROPERTIES
     BUILD_RPATH "${SHERPA_ONNX_RUNTIME_DIR}"
 )
-if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
     set_target_properties(vinput-daemon PROPERTIES
         INSTALL_RPATH "${VINPUT_DAEMON_INSTALL_RPATH}"
     )
@@ -76,7 +76,7 @@ install(FILES
     "${VINPUT_DBUS_SERVICE_FILE}"
     DESTINATION "${VINPUT_DBUS_SERVICE_DIR}"
 )
-if(VINPUT_BUNDLE_SHERPA_RUNTIME)
+if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
     install(FILES
         "${SHERPA_ONNX_CXX_LIB}"
         "${SHERPA_ONNX_C_LIB}"

@@ -2,6 +2,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <system_error>
 #include <unistd.h>
 
 namespace {
@@ -28,6 +29,64 @@ std::filesystem::path ResolveRelativeSymlinkTarget(
   return (parent / link_target).lexically_normal();
 }
 
+bool ResolveSymlinkPathImpl(const std::filesystem::path& path,
+                            std::filesystem::path* resolved,
+                            std::string* error, int depth) {
+  if (depth >= kMaxSymlinkDepth) {
+    if (error) {
+      *error = "Too many symlink levels while resolving " + path.string();
+    }
+    return false;
+  }
+
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory) {
+    const auto parent = path.parent_path();
+    if (parent.empty()) {
+      *resolved = path;
+      return true;
+    }
+
+    std::filesystem::path resolved_parent;
+    if (!ResolveSymlinkPathImpl(parent, &resolved_parent, error, depth)) {
+      return false;
+    }
+
+    const auto filename = path.filename();
+    if (filename.empty()) {
+      *resolved = resolved_parent;
+    } else {
+      *resolved = (resolved_parent / filename).lexically_normal();
+    }
+    return true;
+  }
+  if (ec) {
+    if (error) {
+      *error = "Failed to inspect path " + path.string() + ": " +
+               ec.message();
+    }
+    return false;
+  }
+  if (status.type() != std::filesystem::file_type::symlink) {
+    *resolved = path;
+    return true;
+  }
+
+  const auto link_target = std::filesystem::read_symlink(path, ec);
+  if (ec) {
+    if (error) {
+      *error = "Failed to read symlink " + path.string() + ": " +
+               ec.message();
+    }
+    return false;
+  }
+
+  return ResolveSymlinkPathImpl(
+      ResolveRelativeSymlinkTarget(path, link_target), resolved, error,
+      depth + 1);
+}
+
 }  // namespace
 
 namespace vinput::file {
@@ -41,45 +100,7 @@ bool ResolveSymlinkPath(const std::filesystem::path& path,
     }
     return false;
   }
-
-  std::filesystem::path current = path;
-  for (int depth = 0; depth < kMaxSymlinkDepth; ++depth) {
-    std::error_code ec;
-    const auto status = std::filesystem::symlink_status(current, ec);
-    if (ec) {
-      // If the path doesn't exist, treat it as a non-symlink file.
-      // Allows creating new files that don't exist yet.
-      if (ec == std::errc::no_such_file_or_directory) {
-        *resolved = current;
-        return true;
-      }
-      if (error) {
-        *error = "Failed to inspect path " + current.string() + ": " +
-                 ec.message();
-      }
-      return false;
-    }
-    if (status.type() != std::filesystem::file_type::symlink) {
-      *resolved = current;
-      return true;
-    }
-
-    const auto link_target = std::filesystem::read_symlink(current, ec);
-    if (ec) {
-      if (error) {
-        *error = "Failed to read symlink " + current.string() + ": " +
-                 ec.message();
-      }
-      return false;
-    }
-
-    current = ResolveRelativeSymlinkTarget(current, link_target);
-  }
-
-  if (error) {
-    *error = "Too many symlink levels while resolving " + path.string();
-  }
-  return false;
+  return ResolveSymlinkPathImpl(path, resolved, error, 0);
 }
 
 bool EnsureParentDirectory(const std::filesystem::path& path, std::string* error) {

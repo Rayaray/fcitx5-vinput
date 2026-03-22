@@ -207,6 +207,14 @@
         <translation>警告</translation>
     </message>
     <message>
+        <source>Raw</source>
+        <translation>原始</translation>
+    </message>
+    <message>
+        <source>Command</source>
+        <translation>命令</translation>
+    </message>
+    <message>
         <source>The scene '%1' is either active or builtin. Are you SURE you want to forcibly remove it?</source>
         <translation>场景“%1”处于活动状态或者是内置场景，您确定必须强制移除它吗？</translation>
     </message>
@@ -343,12 +351,24 @@
         <translation> *</translation>
     </message>
     <message>
+        <source>(not set)</source>
+        <translation>（未设置）</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;ASR Providers&lt;/b&gt;</source>
+        <translation>&lt;b&gt;ASR 提供商&lt;/b&gt;</translation>
+    </message>
+    <message>
         <source>ASR Providers</source>
         <translation>ASR 提供商</translation>
     </message>
     <message>
         <source>Add ASR Provider</source>
         <translation>添加 ASR 提供商</translation>
+    </message>
+    <message>
+        <source>Adaptor ID:</source>
+        <translation>适配器 ID：</translation>
     </message>
     <message>
         <source>Are you sure you want to remove ASR provider '%1'?</source>
@@ -367,6 +387,14 @@
         <translation>命令：</translation>
     </message>
     <message>
+        <source>Command / Interpreter:</source>
+        <translation>命令 / 解释器：</translation>
+    </message>
+    <message>
+        <source>Configure LLM Adaptor</source>
+        <translation>配置 LLM 适配器</translation>
+    </message>
+    <message>
         <source>Edit ASR Provider</source>
         <translation>编辑 ASR 提供商</translation>
     </message>
@@ -379,8 +407,44 @@
         <translation>自动重启守护进程失败。</translation>
     </message>
     <message>
+        <source>Failed to load LLM adaptors: %1</source>
+        <translation>加载 LLM adaptor 失败：%1</translation>
+    </message>
+    <message>
         <source>Invalid env entry '%1'. Use KEY=VALUE.</source>
         <translation>无效的环境变量项“%1”，请使用 KEY=VALUE。</translation>
+    </message>
+    <message>
+        <source>LLM Adaptors</source>
+        <translation>LLM 适配器</translation>
+    </message>
+    <message>
+        <source>LLM Adaptor Started</source>
+        <translation>LLM Adaptor 已启动</translation>
+    </message>
+    <message>
+        <source>Adaptor '%1' started.</source>
+        <translation>Adaptor “%1” 已启动。</translation>
+    </message>
+    <message>
+        <source>LLM adaptors are local OpenAI-compatible bridge processes. LLM providers are API endpoints configured separately in the LLM Providers tab.</source>
+        <translation>LLM 适配器是本地的 OpenAI 兼容桥接进程。LLM 提供商是在“LLM 提供商”标签页中单独配置的 API 端点。</translation>
+    </message>
+    <message>
+        <source>Command: %1</source>
+        <translation>命令：%1</translation>
+    </message>
+    <message>
+        <source>Args: %1</source>
+        <translation>参数：%1</translation>
+    </message>
+    <message>
+        <source>Env: %1</source>
+        <translation>环境变量：%1</translation>
+    </message>
+    <message>
+        <source>Supported env entries:</source>
+        <translation>支持的环境变量项：</translation>
     </message>
     <message>
         <source>One KEY=VALUE entry per line</source>
@@ -391,12 +455,44 @@
         <translation>每行一个参数</translation>
     </message>
     <message>
+        <source>Selected model '%1' has been assigned to the preferred local ASR provider.</source>
+        <translation>已将所选模型“%1”分配给首选的本地 ASR 提供商。</translation>
+    </message>
+    <message>
+        <source>Local Model Updated</source>
+        <translation>本地模型已更新</translation>
+    </message>
+    <message>
+        <source>Start</source>
+        <translation>启动</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>停止</translation>
+    </message>
+    <message>
         <source>Type:</source>
         <translation>类型：</translation>
     </message>
     <message>
         <source>builtin</source>
         <translation>内置</translation>
+    </message>
+    <message>
+        <source>local</source>
+        <translation>本地</translation>
+    </message>
+    <message>
+        <source>user</source>
+        <translation>用户</translation>
+    </message>
+    <message>
+        <source>running</source>
+        <translation>运行中</translation>
+    </message>
+    <message>
+        <source>stopped</source>
+        <translation>已停止</translation>
     </message>
     <message>
         <source>command</source>
@@ -411,6 +507,14 @@
 Please follow the instructions.</source>
         <translation>语音输入需要额外的 Flatpak 权限
 请参考说明文档</translation>
+    </message>
+    <message>
+        <source>Command or interpreter</source>
+        <translation>命令或解释器</translation>
+    </message>
+    <message>
+        <source>Builtin ASR providers cannot be removed.</source>
+        <translation>内建 ASR 提供商不能被移除。</translation>
     </message>
 </context>
 <context>

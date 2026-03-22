@@ -11,6 +11,7 @@
 
 #include <set>
 #include <string>
+#include <string_view>
 
 namespace {
 
@@ -52,26 +53,9 @@ std::string TrimAsciiWhitespace(std::string text) {
   return text.substr(begin, end - begin + 1);
 }
 
-json BuildCandidatesSchema(int candidate_count) {
-  json array_schema = {
-      {"type", "array"},
-      {"items", {{"type", "string"}}},
-      {"minItems", 1},
-      {"maxItems", candidate_count},
-  };
-  json schema = {
-      {"type", "object"},
-      {"properties", {{"candidates", array_schema}}},
-      {"required", json::array({"candidates"})},
-      {"additionalProperties", false},
-  };
+json BuildCandidatesResponseFormat() {
   return {
-      {"type", "json_schema"},
-      {"json_schema", {
-          {"name", "candidates_response"},
-          {"strict", true},
-          {"schema", schema},
-      }},
+      {"type", "json_object"},
   };
 }
 
@@ -172,12 +156,68 @@ std::vector<std::string> ExtractCandidates(const json &response) {
   return candidates;
 }
 
+void AppendMarkdownCodeBlock(std::string *out, std::string_view text) {
+  if (!out) {
+    return;
+  }
+  out->append("```text\n");
+  out->append(text);
+  if (text.empty() || text.back() != '\n') {
+    out->push_back('\n');
+  }
+  out->append("```\n");
+}
+
+void AppendMarkdownTextSection(std::string *out, std::string_view heading,
+                               std::string_view body) {
+  if (!out) {
+    return;
+  }
+  if (!out->empty() && out->back() != '\n') {
+    out->push_back('\n');
+  }
+  if (!out->empty()) {
+    out->push_back('\n');
+  }
+  out->append("## ");
+  out->append(heading);
+  out->append("\n\n");
+  AppendMarkdownCodeBlock(out, body);
+}
+
+std::string BuildUserInputMarkdown(std::string_view source_text) {
+  std::string markdown = "# Input\n";
+  AppendMarkdownTextSection(&markdown, "Source Text", source_text);
+  return markdown;
+}
+
+std::string BuildConstraintsSuffix(int candidate_count) {
+  if (candidate_count <= 0) {
+    return {};
+  }
+  char buf[768];
+  std::snprintf(buf, sizeof(buf),
+                "\n\n## Constraints\n"
+                "- Return only the JSON object described below.\n"
+                "- Each candidate must contain only the final rewritten text.\n"
+                "- Do not include explanations, Markdown fences, or extra keys.\n"
+                "\n\n## Format\n"
+                "Return EXACTLY %d candidate(s) in a JSON object:\n"
+                "```json\n"
+                "{\"candidates\": [\"<string>\", \"<string>\"]}\n"
+                "```",
+                candidate_count);
+  return buf;
+}
+
 std::optional<std::vector<std::string>>
 RewriteWithOpenAiCompatible(const std::string &text,
                             const vinput::scene::Definition &scene,
                             const LlmProvider &provider, int candidate_count,
-                            std::string *error_out) {
-  if (scene.prompt.empty()) {
+                            std::string *error_out,
+                            const std::string &task_prompt = {},
+                            bool use_markdown_user_input = true) {
+  if (scene.prompt.empty() && task_prompt.empty()) {
     return std::nullopt;
   }
 
@@ -193,24 +233,23 @@ RewriteWithOpenAiCompatible(const std::string &text,
     return std::nullopt;
   }
 
-  std::string system_prompt = scene.prompt;
-  if (candidate_count > 1) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "\nProvide exactly %d alternative versions.",
-                  candidate_count);
-    system_prompt += buf;
-  }
+  const std::string &effective_task =
+      task_prompt.empty() ? scene.prompt : task_prompt;
 
-  std::vector<json> messages = {
-      {{"role", "system"}, {"content", system_prompt}},
-  };
-  messages.push_back({{"role", "user"}, {"content", text}});
+  const std::string system_content =
+      effective_task + BuildConstraintsSuffix(candidate_count);
+  const std::string user_content =
+      use_markdown_user_input ? BuildUserInputMarkdown(text) : text;
+
+  std::vector<json> messages;
+  messages.push_back({{"role", "system"}, {"content", system_content}});
+  messages.push_back({{"role", "user"}, {"content", user_content}});
 
   json request = {
       {"model", scene.model},
       {"stream", false},
       {"temperature", 0.2},
-      {"response_format", BuildCandidatesSchema(candidate_count)},
+      {"response_format", BuildCandidatesResponseFormat()},
       {"messages", std::move(messages)},
   };
   const std::string request_body = request.dump();
@@ -407,14 +446,17 @@ PostProcessor::ProcessCommand(const std::string &asr_text,
     return fallback;
   }
 
-  // User message: selected text + voice command
-  std::string user_message = selected_text +
-      "\n\nUser voice command (may contain recognition errors): " +
-      normalized_asr;
+  // task prompt: scene prompt header + raw voice command
+  std::string task_prompt = command_scene.prompt;
+  if (!task_prompt.empty() && task_prompt.back() != '\n') {
+    task_prompt.push_back('\n');
+  }
+  task_prompt += normalized_asr;
 
   auto rewritten =
-      RewriteWithOpenAiCompatible(user_message, command_scene, *provider,
-                                   command_candidate_count, error_out);
+      RewriteWithOpenAiCompatible(selected_text, command_scene, *provider,
+                                   command_candidate_count, error_out,
+                                   task_prompt, false);
 
   vinput::result::Payload payload;
   std::set<std::string> seen;

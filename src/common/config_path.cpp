@@ -84,10 +84,6 @@ static bool SetTypedConfigValue(CoreConfig *config,
     config->modelBaseDir = value;
     return true;
   }
-  if (PathEquals(keys, {"registry_url"})) {
-    config->registryUrl = value;
-    return true;
-  }
   if (PathEquals(keys, {"default_language"})) {
     config->defaultLanguage = value;
     return true;
@@ -128,10 +124,6 @@ static bool GetTypedConfigValue(const CoreConfig &config,
   }
   if (PathEquals(keys, {"model_base_dir"})) {
     *value = config.modelBaseDir;
-    return true;
-  }
-  if (PathEquals(keys, {"registry_url"})) {
-    *value = config.registryUrl;
     return true;
   }
   if (PathEquals(keys, {"default_language"})) {

@@ -195,6 +195,11 @@ msgstr "所有文件已就绪，无需初始化"
 msgid "Failed to create config"
 msgstr "创建配置文件失败"
 
+#: src/cli/command_init.cpp:100
+#, c-format
+msgid "Failed to create config: %s"
+msgstr "创建配置文件失败：%s"
+
 #: src/cli/command_init.cpp:59
 #, c-format
 msgid "Failed to create model dir: %s"
@@ -861,8 +866,8 @@ msgstr "ASR 提供商 '%s' 没有引用可编辑的脚本文件。"
 
 #: src/cli/command_asr.cpp
 #, c-format
-msgid "ASR provider '%s' is builtin and cannot be edited."
-msgstr "ASR 提供商 '%s' 是内置提供商，不能编辑。"
+msgid "ASR provider '%s' is not a command provider and cannot be edited."
+msgstr "ASR 提供商 '%s' 不是命令型提供商，不能编辑。"
 
 #: src/cli/command_asr.cpp
 #, c-format
@@ -889,12 +894,12 @@ msgid "Add an ASR provider"
 msgstr "添加 ASR 提供商"
 
 #: src/cli/command_asr.cpp
-msgid "Builtin ASR providers do not accept command or env fields."
-msgstr "内置 ASR 提供商不接受 command 或 env 字段。"
+msgid "Local ASR providers do not accept command or env fields."
+msgstr "本地 ASR 提供商不接受 command 或 env 字段。"
 
 #: src/cli/main.cpp
-msgid "Builtin model name"
-msgstr "内置模型名称"
+msgid "Local model name"
+msgstr "本地模型名称"
 
 #: src/cli/command_asr.cpp
 msgid "COMMAND"
@@ -955,8 +960,17 @@ msgid "Provider timeout in milliseconds"
 msgstr "提供商超时时间（毫秒）"
 
 #: src/cli/main.cpp
-msgid "Provider type: builtin or command"
-msgstr "提供商类型：builtin 或 command"
+msgid "Provider type: local or command"
+msgstr "提供商类型：local 或 command"
+
+#: src/cli/command_asr.cpp
+msgid "BUILTIN"
+msgstr "内建"
+
+#: src/cli/command_asr.cpp
+#, c-format
+msgid "Builtin ASR provider '%s' cannot be removed."
+msgstr "内建 ASR 提供商 '%s' 不能被移除。"
 
 #: src/cli/main.cpp
 msgid "Remove an ASR provider"
@@ -998,36 +1012,48 @@ msgid "Updated ASR provider script: %s"
 msgstr "已更新 ASR 提供商脚本：%s"
 
 #: src/cli/main.cpp
-msgid "Manage built-in and user extensions"
-msgstr "管理内建和用户扩展"
+msgid "Manage built-in and user LLM adaptors"
+msgstr "管理内建和用户 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "List available extensions"
-msgstr "列出可用扩展"
+msgid "List available LLM adaptors"
+msgstr "列出可用 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "Start an LLM extension"
-msgstr "启动一个 LLM 扩展"
+msgid "Start an LLM adaptor"
+msgstr "启动一个 LLM adaptor"
 
 #: src/cli/main.cpp
-msgid "Stop an LLM extension"
-msgstr "停止一个 LLM 扩展"
+msgid "Stop an LLM adaptor"
+msgstr "停止一个 LLM adaptor"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' started."
-msgstr "扩展 '%s' 已启动。"
+msgid "Adaptor '%s' started."
+msgstr "Adaptor '%s' 已启动。"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' stopped."
-msgstr "扩展 '%s' 已停止。"
+msgid "Adaptor '%s' stopped."
+msgstr "Adaptor '%s' 已停止。"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
 msgid "Log file: %s"
 msgstr "日志文件：%s"
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_asr.cpp
+msgid "(not set)"
+msgstr "（未设置）"
+
+#: src/cli/main.cpp
+msgid "Adaptor ID"
+msgstr "Adaptor ID"
+
+#: src/cli/command_adaptor.cpp
 msgid "SOURCE"
 msgstr "来源"
+
+#: src/cli/command_adaptor.cpp
+msgid "STATE"
+msgstr "状态"

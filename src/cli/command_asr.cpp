@@ -3,9 +3,7 @@
 #include "cli/cli_helpers.h"
 #include "cli/editor_utils.h"
 #include "cli/systemd_client.h"
-#include "common/asr_defaults.h"
 #include "common/core_config.h"
-#include "common/extension_manager.h"
 #include "common/i18n.h"
 #include "common/path_utils.h"
 #include "common/string_utils.h"
@@ -17,8 +15,8 @@
 
 namespace {
 
-bool IsBuiltinProvider(const AsrProvider &provider) {
-  return provider.type == vinput::asr::kBuiltinProviderType;
+bool IsLocalProvider(const AsrProvider &provider) {
+  return provider.type == vinput::asr::kLocalProviderType;
 }
 
 bool IsCommandProvider(const AsrProvider &provider) {
@@ -83,17 +81,6 @@ std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
     return {};
   }
 
-  if (provider.command.find('/') == std::string::npos &&
-      provider.command.rfind(".", 0) != 0 &&
-      provider.command.rfind("~", 0) != 0) {
-    std::string error;
-    auto path = vinput::extension::ResolveCommandPath(
-        provider.command, vinput::extension::Type::kAsr, &error);
-    if (path.has_value()) {
-      return *path;
-    }
-  }
-
   if (provider.command.find('/') != std::string::npos ||
       provider.command.rfind(".", 0) == 0 ||
       provider.command.rfind("~", 0) == 0) {
@@ -122,6 +109,7 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
     for (const auto &provider : config.asr.providers) {
       arr.push_back({{"name", provider.name},
                      {"type", provider.type},
+                     {"builtin", provider.builtin},
                      {"active", provider.name == config.asr.activeProvider},
                      {"model", provider.model},
                      {"command", provider.command},
@@ -133,18 +121,20 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("NAME"), _("TYPE"), _("ACTIVE"),
+  std::vector<std::string> headers = {_("NAME"), _("TYPE"), _("BUILTIN"),
+                                      _("ACTIVE"),
                                       _("MODEL"), _("COMMAND"),
                                       _("TIMEOUT")};
   std::vector<std::vector<std::string>> rows;
   for (const auto &provider : config.asr.providers) {
     std::string model_display = "-";
-    if (IsBuiltinProvider(provider)) {
+    if (IsLocalProvider(provider)) {
       model_display = provider.model.empty() ? _("(not set)") : provider.model;
     }
     rows.push_back(
         {provider.name,
          provider.type,
+         provider.builtin ? _("yes") : _("no"),
          provider.name == config.asr.activeProvider ? _("yes") : _("no"),
          model_display,
          IsCommandProvider(provider) ? JoinCommand(provider) : "-",
@@ -176,12 +166,13 @@ int RunAsrAdd(const std::string &name, const std::string &type,
   AsrProvider provider;
   provider.name = name;
   provider.type = type;
+  provider.builtin = false;
   provider.timeoutMs = timeout_ms;
 
-  if (type == vinput::asr::kBuiltinProviderType) {
+  if (type == vinput::asr::kLocalProviderType) {
     if (!command.empty() || !args.empty() || !env_entries.empty()) {
       fmt.PrintError(
-          _("Builtin ASR providers do not accept command or env fields."));
+          _("Local ASR providers do not accept command or env fields."));
       return 1;
     }
     provider.model = model;
@@ -245,6 +236,11 @@ int RunAsrRemove(const std::string &name, bool force, Formatter &fmt,
   }
 
   const bool removing_active = name == config.asr.activeProvider;
+  if (it->builtin) {
+    fmt.PrintError(vinput::str::FmtStr(
+        _("Builtin ASR provider '%s' cannot be removed."), name));
+    return 1;
+  }
   if (removing_active && !force) {
     fmt.PrintError(vinput::str::FmtStr(
         _("Cannot remove active ASR provider '%s'. Use --force to override."),
@@ -317,7 +313,8 @@ int RunAsrEdit(const std::string &name, Formatter &fmt, const CliContext &ctx) {
   }
   if (!IsCommandProvider(*provider)) {
     fmt.PrintError(vinput::str::FmtStr(
-        _("ASR provider '%s' is builtin and cannot be edited."), name));
+        _("ASR provider '%s' is not a command provider and cannot be edited."),
+        name));
     return 1;
   }
 

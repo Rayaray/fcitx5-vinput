@@ -34,7 +34,7 @@ add_executable(vinput
     command_daemon.cpp
     command_status.cpp
     command_recording.cpp
-    command_extension.cpp
+    command_adaptor.cpp
     dbus_client.cpp
     systemd_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
@@ -59,11 +59,11 @@ install(TARGETS vinput
 )
 
 install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/extensions/asr/elevenlabs_speech_to_text.py
-    DESTINATION ${VINPUT_EXTENSION_DIR}/asr
+    ${CMAKE_SOURCE_DIR}/data/asr-providers/elevenlabs_speech_to_text.py
+    DESTINATION ${VINPUT_ASR_PROVIDER_DIR}
 )
 
 install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/extensions/llm/mtranserver_proxy.py
-    DESTINATION ${VINPUT_EXTENSION_DIR}/llm
+    ${CMAKE_SOURCE_DIR}/data/llm-adaptors/mtranserver_proxy.py
+    DESTINATION ${VINPUT_LLM_ADAPTOR_DIR}
 )

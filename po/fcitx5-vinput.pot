@@ -384,7 +384,7 @@ msgid "List available audio input devices"
 msgstr ""
 
 #: src/cli/main.cpp
-msgid "List available extensions"
+msgid "List available LLM adaptors"
 msgstr ""
 
 #: src/cli/main.cpp:89
@@ -414,9 +414,9 @@ msgstr ""
 msgid "Manage capture devices"
 msgstr ""
 
-#. ---- extension subcommand ----
+#. ---- adaptor subcommand ----
 #: src/cli/main.cpp
-msgid "Manage built-in and user extensions"
+msgid "Manage built-in and user LLM adaptors"
 msgstr ""
 
 #. ---- hotword subcommand ----
@@ -686,7 +686,7 @@ msgid "Start the daemon"
 msgstr ""
 
 #: src/cli/main.cpp
-msgid "Start an LLM extension"
+msgid "Start an LLM adaptor"
 msgstr ""
 
 #: src/cli/main.cpp:154
@@ -694,33 +694,33 @@ msgid "Stop the daemon"
 msgstr ""
 
 #: src/cli/main.cpp
-msgid "Stop an LLM extension"
+msgid "Stop an LLM adaptor"
 msgstr ""
 
 #: src/cli/command_device.cpp:52
 msgid "System Default"
 msgstr ""
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' started."
+msgid "Adaptor '%s' started."
 msgstr ""
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
-msgid "Extension '%s' stopped."
+msgid "Adaptor '%s' stopped."
 msgstr ""
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 #, c-format
 msgid "Log file: %s"
 msgstr ""
 
-#: src/cli/command_extension.cpp
+#: src/cli/command_adaptor.cpp
 msgid "SOURCE"
 msgstr ""
 
-#: src/cli/command_extension.cpp src/cli/command_scene.cpp:40
+#: src/cli/command_adaptor.cpp src/cli/command_scene.cpp:40
 msgid "ID"
 msgstr ""
 

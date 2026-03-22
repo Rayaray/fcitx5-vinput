@@ -1,8 +1,6 @@
 #include "asr_provider.h"
 
 #include "asr_engine.h"
-#include "common/asr_defaults.h"
-#include "common/extension_manager.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
 
@@ -55,13 +53,13 @@ std::string FormatProviderError(const std::string &provider_name,
   return message;
 }
 
-class BuiltinProvider : public Provider {
+class LocalProvider : public Provider {
 public:
   bool Init(const CoreConfig &config, std::string *error) override {
-    const ::AsrProvider *provider = ResolveActiveBuiltinAsrProvider(config);
+    const ::AsrProvider *provider = ResolveActiveLocalAsrProvider(config);
     if (!provider) {
       if (error) {
-        *error = "Active ASR provider is not a builtin provider.";
+        *error = "Active ASR provider is not a local provider.";
       }
       return false;
     }
@@ -72,7 +70,7 @@ public:
     ModelManager model_mgr(ResolveModelBaseDir(config).string(), model_name_);
     if (!model_mgr.EnsureModels()) {
       if (error) {
-        *error = "Builtin ASR model check failed for provider '" +
+        *error = "Local ASR model check failed for provider '" +
                  provider_name_ + "'.";
       }
       return false;
@@ -89,7 +87,7 @@ public:
     asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;
     if (!engine_.Init(model_info, asr_config)) {
       if (error) {
-        *error = "Failed to initialize builtin ASR provider '" +
+        *error = "Failed to initialize local ASR provider '" +
                  provider_name_ + "'.";
       }
       return false;
@@ -141,17 +139,6 @@ public:
     command_.args = provider->args;
     command_.env = provider->env;
     command_.timeout_ms = provider->timeoutMs;
-
-    if (command_.command.find('/') == std::string::npos &&
-        command_.command.rfind(".", 0) != 0 &&
-        command_.command.rfind("~", 0) != 0) {
-      std::string resolve_error;
-      auto extension_path = vinput::extension::ResolveCommandPath(
-          command_.command, vinput::extension::Type::kAsr, &resolve_error);
-      if (extension_path.has_value()) {
-        command_.command = extension_path->string();
-      }
-    }
 
     initialized_ = true;
     return true;
@@ -223,8 +210,8 @@ std::unique_ptr<Provider> CreateProvider(const CoreConfig &config,
     return nullptr;
   }
 
-  if (provider->type == kBuiltinProviderType) {
-    return std::make_unique<BuiltinProvider>();
+  if (provider->type == kLocalProviderType) {
+    return std::make_unique<LocalProvider>();
   }
   if (provider->type == kCommandProviderType) {
     return std::make_unique<CommandProvider>();

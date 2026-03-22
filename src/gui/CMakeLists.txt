@@ -33,16 +33,36 @@ add_executable(vinput-gui
     ${VINPUT_GUI_HEADERS}
 )
 
-if(QT_LINGUIST_FOUND)
-    set(VINPUT_GUI_TS
-        ${CMAKE_SOURCE_DIR}/i18n/vinput-gui_zh_CN.ts
-    )
+set(VINPUT_GUI_TS
+    ${CMAKE_SOURCE_DIR}/i18n/vinput-gui_zh_CN.ts
+)
 
+if(QT_LINGUIST_FOUND)
     if(QT_MAJOR EQUAL 6)
         qt_add_translation(VINPUT_GUI_QM ${VINPUT_GUI_TS})
     else()
         qt5_add_translation(VINPUT_GUI_QM ${VINPUT_GUI_TS})
     endif()
+else()
+    find_program(VINPUT_LRELEASE_EXECUTABLE
+        NAMES lrelease-qt6 lrelease lrelease-qt5
+    )
+    if(VINPUT_LRELEASE_EXECUTABLE)
+        set(VINPUT_GUI_QM
+            ${CMAKE_CURRENT_BINARY_DIR}/vinput-gui_zh_CN.qm
+        )
+        add_custom_command(
+            OUTPUT ${VINPUT_GUI_QM}
+            COMMAND ${VINPUT_LRELEASE_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/i18n/vinput-gui_zh_CN.ts
+                -qm ${VINPUT_GUI_QM}
+            DEPENDS ${CMAKE_SOURCE_DIR}/i18n/vinput-gui_zh_CN.ts
+            VERBATIM
+        )
+    endif()
+endif()
+
+if(VINPUT_GUI_QM)
     add_custom_target(vinput-gui-translations ALL DEPENDS ${VINPUT_GUI_QM})
 endif()
 
@@ -64,7 +84,7 @@ install(TARGETS vinput-gui
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_LINGUIST_FOUND)
+if(VINPUT_GUI_QM)
     install(FILES ${VINPUT_GUI_QM}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/i18n
     )

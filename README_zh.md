@@ -61,7 +61,7 @@ sudo apt-get install -f
 
 ### 从源码编译
 
-**依赖：** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
+**依赖：** `cmake` `fcitx5` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
 sudo bash scripts/build-sherpa-onnx.sh
@@ -70,8 +70,22 @@ cmake --build build
 sudo cmake --install build
 ```
 
-如果你的机器已经以系统级方式安装好了 `sherpa-onnx`，可以跳过第一步。
-本地和 CI 现在都默认使用同一种系统级依赖布局。
+如果你使用 `just`，仓库里现在也提供了一层很薄的命令包装，底层仍然是同一套
+CMake / 脚本入口：
+
+```bash
+just sherpa
+just release
+just build
+sudo just install
+```
+
+第一步会下载本地构建和发布打包所用的预编译 `sherpa-onnx` 运行库。
+这些运行库会随安装产物一起打包，而不是作为单独的系统依赖项声明。
+从源码构建时现在默认安装到 Fcitx5 的系统前缀（`/usr`），这样 addon
+会落到 Fcitx5 会扫描的目录里。若你之前的旧构建已经安装到 `/usr/local`，
+请清理旧 build 目录后重新安装，让 `vinput.conf` 和 `fcitx5-vinput.so`
+进入 Fcitx5 的系统路径。
 
 ## 快速开始
 
@@ -169,12 +183,13 @@ vinput scene remove <ID>        # 删除场景
 vinput llm list                 # 列出已配置 provider
 vinput llm add <名称> --base-url <url>
 vinput llm remove <名称>         # 删除 provider
-vinput extension list           # 列出内建/用户扩展
-vinput extension start <id>     # 启动 LLM 扩展
-vinput extension stop <id>      # 停止 LLM 扩展
+vinput adaptor list             # 列出内建/用户 LLM adaptor
+vinput adaptor start <id>       # 启动 LLM adaptor
+vinput adaptor stop <id>        # 停止 LLM adaptor
 ```
 
-LLM provider 由场景引用，不再有单独的“当前 provider”开关。
+LLM provider 由场景引用，不再有单独的“当前 provider”开关。LLM adaptor
+只是本地 OpenAI 兼容桥接进程，provider 可以指向它。
 
 </details>
 
@@ -189,7 +204,7 @@ vinput asr edit <名称>           # 编辑外部 provider 脚本
 vinput asr remove <名称>         # 删除 provider
 ```
 
-内建 ASR 扩展可直接用脚本 ID 引用，不必手写完整路径。
+内建 ASR provider 脚本可直接用脚本 ID 引用，不必手写完整路径。
 
 </details>
 
@@ -296,12 +311,12 @@ vinput scene add --id polish \
 vinput scene use polish
 ```
 
-## 扩展脚本与 Provider 约定
+## Provider 脚本与 Adaptor 约定
 
-仓库里的可选扩展脚本统一放在 `extensions/`：
+仓库里的可选集成脚本现在统一放在 `data/` 下的两个平铺目录：
 
-- `extensions/asr/`：外部 ASR provider 脚本
-- `extensions/llm/`：LLM provider 代理或桥接脚本
+- `data/asr-providers/`：外部 ASR provider 脚本
+- `data/llm-adaptors/`：LLM OpenAI 兼容 adaptor 脚本
 
 `scripts/` 目录只保留构建、检查、打包之类的项目维护脚本。
 
@@ -329,7 +344,10 @@ vinput scene use polish
 {
   "name": "elevenlabs",
   "type": "command",
-  "command": "elevenlabs_speech_to_text",
+  "command": "python3",
+  "args": [
+    "/usr/share/fcitx5-vinput/asr-providers/elevenlabs_speech_to_text.py"
+  ],
   "env": {
     "ELEVENLABS_API_KEY": "..."
   },
@@ -337,12 +355,14 @@ vinput scene use polish
 }
 ```
 
-内建扩展默认安装到 `/usr/share/fcitx5-vinput/extensions/`。用户自定义扩展放到
-`~/.config/vinput/extensions/` 即可；同名文件会优先覆盖内建扩展。
+内建 ASR provider 脚本默认安装到
+`/usr/share/fcitx5-vinput/asr-providers/`。用户覆盖脚本放到
+`~/.config/vinput/asr-providers/` 即可；同名文件会优先覆盖内建脚本。
+`command` 应该填写可执行命令或解释器，脚本路径放在 `args` 里。
 
-### LLM 代理脚本协议
+### LLM Adaptor 协议
 
-如果你要自己写 LLM 代理，它需要提供 OpenAI 兼容接口，至少实现：
+如果你要自己写 LLM adaptor，它需要提供 OpenAI 兼容接口，至少实现：
 
 - `GET /v1/models`
 - `POST /v1/chat/completions`
@@ -380,13 +400,16 @@ vinput scene use polish
 }
 ```
 
-对于内建托管的 LLM 扩展，运行时配置建议统一走环境变量，不要依赖 CLI 位置参数。
-`vinput extension start/stop` 直接启动脚本，不会为它注入额外位置参数。
+内建 LLM adaptor 默认安装到 `/usr/share/fcitx5-vinput/llm-adaptors/`。
+用户覆盖脚本放到 `~/.config/vinput/llm-adaptors/` 即可。
+
+对于内建托管的 LLM adaptor，运行时配置建议统一走环境变量，不要依赖 CLI
+位置参数。`vinput adaptor start/stop` 直接启动脚本，不会为它注入额外位置参数。
 
 参考实现：
 
-- `extensions/llm/mtranserver_proxy.py`
-- `extensions/asr/elevenlabs_speech_to_text.py`
+- `data/llm-adaptors/mtranserver_proxy.py`
+- `data/asr-providers/elevenlabs_speech_to_text.py`
 
 ## 配置文件位置
 
