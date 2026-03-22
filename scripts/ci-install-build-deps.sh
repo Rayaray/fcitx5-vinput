@@ -39,6 +39,7 @@ case "${target}" in
         apt-get install -y \
             bzip2 \
             cmake \
+            g++ \
             ninja-build \
             pkg-config \
             gettext \
