@@ -129,6 +129,8 @@ vinput::process::CommandSpec DefaultCommandSpecForPath(const fs::path &path) {
   return spec;
 }
 
+}  // namespace
+
 vinput::process::CommandSpec BuildCommandSpec(const Info &info,
                                               const CoreConfig &config) {
   vinput::process::CommandSpec spec = DefaultCommandSpecForPath(info.path);
@@ -146,7 +148,46 @@ vinput::process::CommandSpec BuildCommandSpec(const Info &info,
   return spec;
 }
 
-}  // namespace
+std::filesystem::path PidPath(std::string_view adaptor_id) {
+  return vinput::path::AdaptorRuntimeDir() /
+         (std::string(adaptor_id) + ".pid");
+}
+
+bool WritePidFile(std::string_view adaptor_id, pid_t pid, std::string *error) {
+  std::error_code ec;
+  const fs::path runtime_dir = vinput::path::AdaptorRuntimeDir();
+  fs::create_directories(runtime_dir, ec);
+  if (ec) {
+    if (error) {
+      *error = "failed to create runtime directory: " + ec.message();
+    }
+    return false;
+  }
+
+  std::ofstream pid_file(PidPath(adaptor_id), std::ios::out | std::ios::trunc);
+  if (!pid_file.is_open()) {
+    if (error) {
+      *error = "failed to write pid file: " + std::string(adaptor_id);
+    }
+    return false;
+  }
+  pid_file << pid;
+  if (!pid_file.good()) {
+    if (error) {
+      *error = "failed to persist pid file: " + std::string(adaptor_id);
+    }
+    return false;
+  }
+  if (error) {
+    error->clear();
+  }
+  return true;
+}
+
+void RemovePidFile(std::string_view adaptor_id) {
+  std::error_code ec;
+  fs::remove(PidPath(adaptor_id), ec);
+}
 
 std::string SourceToString(Source source) {
   switch (source) {
@@ -279,21 +320,13 @@ bool Start(const Info &info, const CoreConfig &config, std::string *error) {
     return false;
   }
 
-  std::ofstream pid_file(runtime_dir / (info.id + ".pid"),
-                         std::ios::out | std::ios::trunc);
-  pid_file << pid;
-  if (error) {
-    error->clear();
-  }
-  return true;
+  return WritePidFile(info.id, pid, error);
 }
 
 bool Stop(const Info &info, std::string *error) {
-  const fs::path pid_path = vinput::path::AdaptorRuntimeDir() / (info.id + ".pid");
   const pid_t pid = ReadPid(info);
   if (!ProcessExists(pid)) {
-    std::error_code rm_ec;
-    fs::remove(pid_path, rm_ec);
+    RemovePidFile(info.id);
     if (error) {
       *error = "adaptor is not running: " + info.id;
     }
@@ -303,8 +336,7 @@ bool Stop(const Info &info, std::string *error) {
   kill(pid, SIGTERM);
   for (int i = 0; i < 20; ++i) {
     if (!ProcessExists(pid)) {
-      std::error_code rm_ec;
-      fs::remove(pid_path, rm_ec);
+      RemovePidFile(info.id);
       if (error) {
         error->clear();
       }
@@ -314,8 +346,7 @@ bool Stop(const Info &info, std::string *error) {
   }
 
   kill(pid, SIGKILL);
-  std::error_code rm_ec;
-  fs::remove(pid_path, rm_ec);
+  RemovePidFile(info.id);
   if (error) {
     error->clear();
   }

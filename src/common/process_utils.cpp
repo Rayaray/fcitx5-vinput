@@ -406,4 +406,86 @@ bool SpawnDetached(const CommandSpec &spec,
   return true;
 }
 
+bool SpawnForMonitoring(const CommandSpec &spec,
+                        const std::filesystem::path &working_dir,
+                        SpawnedProcess *process_out, std::string *error) {
+  if (process_out) {
+    process_out->pid = -1;
+    process_out->stderr_fd = -1;
+  }
+  if (spec.command.empty()) {
+    if (error) {
+      *error = "Command is empty.";
+    }
+    return false;
+  }
+
+  int stderr_pipe[2] = {-1, -1};
+  if (pipe(stderr_pipe) != 0) {
+    if (error) {
+      *error = std::string("pipe failed: ") + std::strerror(errno);
+    }
+    return false;
+  }
+
+  std::vector<std::string> argv_storage;
+  std::vector<char *> argv = BuildArgv(spec, &argv_storage);
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    CloseIfOpen(&stderr_pipe[0]);
+    CloseIfOpen(&stderr_pipe[1]);
+    if (error) {
+      *error = std::string("fork failed: ") + std::strerror(errno);
+    }
+    return false;
+  }
+
+  if (pid == 0) {
+    CloseIfOpen(&stderr_pipe[0]);
+
+    const int devnull = open("/dev/null", O_RDWR);
+    if (devnull >= 0) {
+      dup2(devnull, STDIN_FILENO);
+      dup2(devnull, STDOUT_FILENO);
+      close(devnull);
+    }
+    dup2(stderr_pipe[1], STDERR_FILENO);
+    CloseIfOpen(&stderr_pipe[1]);
+
+    setsid();
+
+    if (!working_dir.empty()) {
+      chdir(working_dir.c_str());
+    }
+
+    if (!ApplyEnvironment(spec)) {
+      _exit(127);
+    }
+
+    execvp(spec.command.c_str(), argv.data());
+    _exit(127);
+  }
+
+  CloseIfOpen(&stderr_pipe[1]);
+  if (!SetNonBlocking(stderr_pipe[0])) {
+    CloseIfOpen(&stderr_pipe[0]);
+    kill(pid, SIGKILL);
+    waitpid(pid, nullptr, 0);
+    if (error) {
+      *error = std::string("fcntl failed: ") + std::strerror(errno);
+    }
+    return false;
+  }
+
+  if (process_out) {
+    process_out->pid = pid;
+    process_out->stderr_fd = stderr_pipe[0];
+  }
+  if (error) {
+    error->clear();
+  }
+  return true;
+}
+
 }  // namespace vinput::process

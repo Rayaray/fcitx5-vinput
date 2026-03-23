@@ -703,6 +703,39 @@ bool RunVinputJson(const QStringList &args, QJsonDocument *out_doc,
   return true;
 }
 
+bool RunVinputCommand(const QStringList &args, QString *error_out = nullptr,
+                      int timeout_ms = 5000) {
+  QString vinput_path = ResolveVinputExecutable(error_out);
+  if (vinput_path.isEmpty()) {
+    return false;
+  }
+
+  QProcess proc;
+  proc.start(vinput_path, args);
+  if (!proc.waitForFinished(timeout_ms)) {
+    proc.kill();
+    if (error_out) {
+      *error_out = QObject::tr("vinput command timed out");
+    }
+    return false;
+  }
+
+  if (proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0) {
+    QString stderr_text = QString::fromUtf8(proc.readAllStandardError()).trimmed();
+    QString stdout_text = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+    if (error_out) {
+      *error_out =
+          !stderr_text.isEmpty() ? stderr_text
+                                 : (!stdout_text.isEmpty()
+                                        ? stdout_text
+                                        : QObject::tr("vinput command failed"));
+    }
+    return false;
+  }
+
+  return true;
+}
+
 QList<DeviceEntry> LoadDevicesFromCli(QString *error_out) {
   QJsonDocument doc;
   if (!RunVinputJson({"device", "list"}, &doc, error_out) || !doc.isArray()) {
@@ -1951,19 +1984,11 @@ void MainWindow::onAdaptorStart() {
     return;
   }
 
-  CoreConfig config = LoadCoreConfig();
-  NormalizeCoreConfig(&config);
-
   const QString adaptor_id = item->data(Qt::UserRole).toString();
-  std::string error;
-  auto info = vinput::adaptor::FindById(adaptor_id.toStdString(), &error);
-  if (!info.has_value()) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(error));
-    return;
-  }
-
-  if (!vinput::adaptor::Start(*info, config, &error)) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(error));
+  QString command_error;
+  if (!RunVinputCommand({"adaptor", "start", adaptor_id}, &command_error,
+                        -1)) {
+    QMessageBox::warning(this, tr("Error"), command_error);
     return;
   }
 
@@ -1980,15 +2005,10 @@ void MainWindow::onAdaptorStop() {
   }
 
   const QString adaptor_id = item->data(Qt::UserRole).toString();
-  std::string error;
-  auto info = vinput::adaptor::FindById(adaptor_id.toStdString(), &error);
-  if (!info.has_value()) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(error));
-    return;
-  }
-
-  if (!vinput::adaptor::Stop(*info, &error)) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(error));
+  QString command_error;
+  if (!RunVinputCommand({"adaptor", "stop", adaptor_id}, &command_error,
+                        -1)) {
+    QMessageBox::warning(this, tr("Error"), command_error);
     return;
   }
 

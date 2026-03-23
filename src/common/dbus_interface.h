@@ -17,6 +17,8 @@ constexpr const char *kMethodStartRecording = "StartRecording";
 constexpr const char *kMethodStartCommandRecording = "StartCommandRecording";
 constexpr const char *kMethodStopRecording = "StopRecording";
 constexpr const char *kMethodGetStatus = "GetStatus";
+constexpr const char *kMethodStartAdaptor = "StartAdaptor";
+constexpr const char *kMethodStopAdaptor = "StopAdaptor";
 constexpr const char *kMethodNotifyError = "NotifyError";
 
 constexpr const char *kSignalRecognitionResult = "RecognitionResult";

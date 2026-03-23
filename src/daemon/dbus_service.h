@@ -49,6 +49,10 @@ public:
   void SetStopHandler(
       std::function<MethodResult(const std::string &scene_id)> handler);
   void SetStatusHandler(std::function<std::string()> handler);
+  void SetStartAdaptorHandler(
+      std::function<MethodResult(const std::string &adaptor_id)> handler);
+  void SetStopAdaptorHandler(
+      std::function<MethodResult(const std::string &adaptor_id)> handler);
 
   static int handleStartRecording(sd_bus_message *m, void *userdata,
                                   sd_bus_error *error);
@@ -58,6 +62,10 @@ public:
                                  sd_bus_error *error);
   static int handleGetStatus(sd_bus_message *m, void *userdata,
                              sd_bus_error *error);
+  static int handleStartAdaptor(sd_bus_message *m, void *userdata,
+                                sd_bus_error *error);
+  static int handleStopAdaptor(sd_bus_message *m, void *userdata,
+                               sd_bus_error *error);
 
 private:
   sd_bus *bus_ = nullptr;
@@ -77,4 +85,8 @@ private:
   std::function<MethodResult(const std::string &)> start_command_handler_;
   std::function<MethodResult(const std::string &scene_id)> stop_handler_;
   std::function<std::string()> status_handler_;
+  std::function<MethodResult(const std::string &adaptor_id)>
+      start_adaptor_handler_;
+  std::function<MethodResult(const std::string &adaptor_id)>
+      stop_adaptor_handler_;
 };

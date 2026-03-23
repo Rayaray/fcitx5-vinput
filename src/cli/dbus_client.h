@@ -23,6 +23,8 @@ public:
     bool StartRecording(std::string* error = nullptr);
     bool StartCommandRecording(const std::string& selected_text, std::string* error = nullptr);
     bool StopRecording(const std::string& scene_id, std::string* error = nullptr);
+    bool StartAdaptor(const std::string& adaptor_id, std::string* error = nullptr);
+    bool StopAdaptor(const std::string& adaptor_id, std::string* error = nullptr);
     bool NotifyError(const vinput::dbus::ErrorInfo& error_info,
                      std::string* error = nullptr);
 

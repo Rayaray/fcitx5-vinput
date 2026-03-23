@@ -2,8 +2,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "cli/dbus_client.h"
 #include "common/adaptor_manager.h"
-#include "common/core_config.h"
 #include "common/i18n.h"
 #include "common/string_utils.h"
 
@@ -58,15 +58,9 @@ int RunAdaptorList(Formatter &fmt, const CliContext &ctx) {
 int RunAdaptorStart(const std::string &name, Formatter &fmt,
                     const CliContext &ctx) {
   (void)ctx;
-  auto config = LoadCoreConfig();
-  NormalizeCoreConfig(&config);
   std::string error;
-  auto info = vinput::adaptor::FindById(name, &error);
-  if (!info.has_value()) {
-    fmt.PrintError(error);
-    return 1;
-  }
-  if (!vinput::adaptor::Start(*info, config, &error)) {
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StartAdaptor(name, &error)) {
     fmt.PrintError(error);
     return 1;
   }
@@ -78,12 +72,8 @@ int RunAdaptorStop(const std::string &name, Formatter &fmt,
                    const CliContext &ctx) {
   (void)ctx;
   std::string error;
-  auto info = vinput::adaptor::FindById(name, &error);
-  if (!info.has_value()) {
-    fmt.PrintError(error);
-    return 1;
-  }
-  if (!vinput::adaptor::Stop(*info, &error)) {
+  vinput::cli::DbusClient dbus;
+  if (!dbus.StopAdaptor(name, &error)) {
     fmt.PrintError(error);
     return 1;
   }

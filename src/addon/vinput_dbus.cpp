@@ -557,18 +557,19 @@ void VinputEngine::notifyError(const vinput::dbus::ErrorInfo &error) {
     return;
   }
 
-  const std::string message = RenderErrorMessage(error);
+  std::string title = _("Voice Input");
+  std::string message = RenderErrorMessage(error);
 
   auto *notifications =
       instance_->addonManager().addon("notifications", true);
   if (notifications) {
     notifications->call<fcitx::INotifications::sendNotification>(
         "fcitx5-vinput", 0, "dialog-error",
-        _("Voice Input"), message, std::vector<std::string>{},
+        title, message, std::vector<std::string>{},
         5000, fcitx::NotificationActionCallback{},
         fcitx::NotificationClosedCallback{});
   } else {
-    fprintf(stderr, "vinput: %s\n", message.c_str());
+    fprintf(stderr, "vinput: %s: %s\n", title.c_str(), message.c_str());
   }
 }
 

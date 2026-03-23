@@ -51,6 +51,10 @@ static const sd_bus_vtable vtable[] = {
                   SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD(kMethodGetStatus, "", "s", &DbusService::handleGetStatus,
                   SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD(kMethodStartAdaptor, "s", "", &DbusService::handleStartAdaptor,
+                  SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD(kMethodStopAdaptor, "s", "", &DbusService::handleStopAdaptor,
+                  SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_SIGNAL(kSignalRecognitionResult, "s", 0),
     SD_BUS_SIGNAL(kSignalStatusChanged, "s", 0),
     SD_BUS_SIGNAL(kSignalDaemonError, kErrorInfoSignature, 0),
@@ -180,6 +184,16 @@ void DbusService::SetStatusHandler(std::function<std::string()> handler) {
   status_handler_ = std::move(handler);
 }
 
+void DbusService::SetStartAdaptorHandler(
+    std::function<MethodResult(const std::string &)> handler) {
+  start_adaptor_handler_ = std::move(handler);
+}
+
+void DbusService::SetStopAdaptorHandler(
+    std::function<MethodResult(const std::string &)> handler) {
+  stop_adaptor_handler_ = std::move(handler);
+}
+
 int DbusService::handleStartRecording(sd_bus_message *m, void *userdata,
                                       sd_bus_error *error) {
   auto *self = static_cast<DbusService *>(userdata);
@@ -235,4 +249,40 @@ int DbusService::handleGetStatus(sd_bus_message *m, void *userdata,
     status = self->status_handler_();
   }
   return sd_bus_reply_method_return(m, "s", status.c_str());
+}
+
+int DbusService::handleStartAdaptor(sd_bus_message *m, void *userdata,
+                                    sd_bus_error *error) {
+  auto *self = static_cast<DbusService *>(userdata);
+  const char *adaptor_id = "";
+  int ret = sd_bus_message_read(m, "s", &adaptor_id);
+  if (ret < 0) {
+    fprintf(stderr, "vinput: failed to read StartAdaptor id: %s\n",
+            strerror(-ret));
+    return ret;
+  }
+
+  MethodResult result;
+  if (self->start_adaptor_handler_) {
+    result = self->start_adaptor_handler_(adaptor_id ? adaptor_id : "");
+  }
+  return ReplyWithMethodResult(m, error, result, "");
+}
+
+int DbusService::handleStopAdaptor(sd_bus_message *m, void *userdata,
+                                   sd_bus_error *error) {
+  auto *self = static_cast<DbusService *>(userdata);
+  const char *adaptor_id = "";
+  int ret = sd_bus_message_read(m, "s", &adaptor_id);
+  if (ret < 0) {
+    fprintf(stderr, "vinput: failed to read StopAdaptor id: %s\n",
+            strerror(-ret));
+    return ret;
+  }
+
+  MethodResult result;
+  if (self->stop_adaptor_handler_) {
+    result = self->stop_adaptor_handler_(adaptor_id ? adaptor_id : "");
+  }
+  return ReplyWithMethodResult(m, error, result, "");
 }

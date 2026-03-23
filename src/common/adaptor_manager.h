@@ -2,11 +2,15 @@
 
 #include <filesystem>
 #include <optional>
+#include <sys/types.h>
 #include <string>
 #include <string_view>
 #include <vector>
 
 struct CoreConfig;
+namespace vinput::process {
+struct CommandSpec;
+}
 
 namespace vinput::adaptor {
 
@@ -33,6 +37,11 @@ std::string SourceToString(Source source);
 
 std::vector<Info> Discover(std::string *error);
 std::optional<Info> FindById(std::string_view id, std::string *error);
+vinput::process::CommandSpec BuildCommandSpec(const Info &info,
+                                              const CoreConfig &config);
+std::filesystem::path PidPath(std::string_view adaptor_id);
+bool WritePidFile(std::string_view adaptor_id, pid_t pid, std::string *error);
+void RemovePidFile(std::string_view adaptor_id);
 
 bool IsRunning(const Info &info);
 bool Start(const Info &info, const CoreConfig &config, std::string *error);

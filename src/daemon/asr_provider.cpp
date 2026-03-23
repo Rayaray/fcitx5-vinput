@@ -3,6 +3,7 @@
 #include "asr_engine.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
+#include "common/string_utils.h"
 
 #include <cstddef>
 #include <span>
@@ -12,45 +13,12 @@ namespace vinput::asr {
 
 namespace {
 
-std::string TrimAsciiWhitespace(std::string text) {
-  const auto begin = text.find_first_not_of(" \t\r\n");
-  if (begin == std::string::npos) {
-    return {};
+std::string FormatProviderError(std::string detail, std::string_view fallback) {
+  detail = vinput::str::TrimAsciiWhitespace(detail);
+  if (detail.empty()) {
+    detail = std::string(fallback);
   }
-  const auto end = text.find_last_not_of(" \t\r\n");
-  return text.substr(begin, end - begin + 1);
-}
-
-std::string FirstErrorLine(std::string text) {
-  text = TrimAsciiWhitespace(std::move(text));
-  if (text.empty()) {
-    return {};
-  }
-
-  const std::size_t line_end = text.find_first_of("\r\n");
-  if (line_end != std::string::npos) {
-    text.resize(line_end);
-  }
-
-  constexpr std::size_t kMaxLength = 160;
-  if (text.size() > kMaxLength) {
-    text.resize(kMaxLength);
-    text += "...";
-  }
-  return text;
-}
-
-std::string FormatProviderError(const std::string &provider_name,
-                                const std::string &summary,
-                                std::string detail = {}) {
-  std::string message =
-      "ASR provider '" + provider_name + "': " + summary;
-  detail = FirstErrorLine(std::move(detail));
-  if (!detail.empty()) {
-    message += " ";
-    message += detail;
-  }
-  return message;
+  return detail;
 }
 
 class LocalProvider : public Provider {
@@ -171,33 +139,29 @@ public:
 
     if (command_result.launch_failed) {
       result.ok = false;
-      result.error = FormatProviderError(provider_name_,
-                                         "failed to start.",
-                                         command_result.stderr_text);
+      result.error = FormatProviderError(std::move(command_result.stderr_text),
+                                         "failed to start.");
       return result;
     }
 
     if (command_result.timed_out) {
       result.ok = false;
       result.error =
-          FormatProviderError(provider_name_, "timed out.",
-                              command_result.stderr_text);
+          FormatProviderError(std::move(command_result.stderr_text), "timed out.");
       return result;
     }
 
     if (command_result.exit_code != 0) {
       result.ok = false;
       result.error =
-          FormatProviderError(provider_name_, "failed.",
-                              command_result.stderr_text);
+          FormatProviderError(std::move(command_result.stderr_text), "failed.");
       return result;
     }
 
-    result.text = TrimAsciiWhitespace(std::move(command_result.stdout_text));
+    result.text = vinput::str::TrimAsciiWhitespace(command_result.stdout_text);
     if (result.text.empty()) {
       result.ok = false;
-      result.error =
-          FormatProviderError(provider_name_, "returned no text.");
+      result.error = FormatProviderError({}, "returned no text.");
     }
     return result;
   }
