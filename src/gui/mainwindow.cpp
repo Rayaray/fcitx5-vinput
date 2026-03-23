@@ -6,6 +6,7 @@
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QHash>
 #include <QHBoxLayout>
@@ -43,6 +44,39 @@ namespace {
 
 QString MainWindowTranslate(const char *sourceText) {
   return QCoreApplication::translate("MainWindow", sourceText);
+}
+
+QString ResolveVinputExecutable(QString *error_out = nullptr) {
+  if (vinput::path::isInsideFlatpak()) {
+    constexpr auto kFlatpakVinputPath = "/app/addons/Vinput/bin/vinput";
+    const QString flatpak_path = QString::fromLatin1(kFlatpakVinputPath);
+    if (QFileInfo::exists(flatpak_path)) {
+      return flatpak_path;
+    }
+    if (error_out) {
+      *error_out = QObject::tr("Flatpak Vinput CLI not found at %1")
+                       .arg(flatpak_path);
+    }
+    return {};
+  }
+
+  const QString vinput_path = QStandardPaths::findExecutable("vinput");
+  if (vinput_path.isEmpty() && error_out) {
+    *error_out = QObject::tr("vinput not found in PATH");
+  }
+  return vinput_path;
+}
+
+bool StartVinputDetached(const QStringList &args, QString *error_out = nullptr) {
+  QString vinput_path = ResolveVinputExecutable(error_out);
+  if (vinput_path.isEmpty()) {
+    return false;
+  }
+  const bool started = QProcess::startDetached(vinput_path, args);
+  if (!started && error_out) {
+    *error_out = QObject::tr("Failed to launch %1").arg(vinput_path);
+  }
+  return started;
 }
 
 bool ValidateProviderInput(const QString &name, const QString &base_url,
@@ -483,10 +517,13 @@ bool EditAdaptorDialog(QWidget *parent, const vinput::adaptor::Info &info,
 }
 
 void RestartDaemonFromGui(QWidget *parent) {
-  if (!QProcess::startDetached("vinput", QStringList() << "daemon"
-                                                       << "restart")) {
+  QString error;
+  if (!StartVinputDetached({"daemon", "restart"}, &error)) {
     QMessageBox::warning(parent, MainWindowTranslate("Warning"),
-                         MainWindowTranslate("Failed to restart daemon automatically."));
+                         error.isEmpty()
+                             ? MainWindowTranslate(
+                                   "Failed to restart daemon automatically.")
+                             : error);
   }
 }
 
@@ -629,10 +666,8 @@ namespace {
 
 bool RunVinputJson(const QStringList &args, QJsonDocument *out_doc,
                    QString *error_out) {
-  QString vinput_path = QStandardPaths::findExecutable("vinput");
+  QString vinput_path = ResolveVinputExecutable(error_out);
   if (vinput_path.isEmpty()) {
-    if (error_out)
-      *error_out = QObject::tr("vinput not found in PATH");
     return false;
   }
 
@@ -1070,7 +1105,7 @@ void MainWindow::onSaveClicked() {
 
   if (SaveCoreConfig(currentConfig)) {
     // notify fcitx5 daemon to load new config via dbus
-    QProcess::startDetached("vinput", QStringList() << "daemon" << "restart");
+    StartVinputDetached({"daemon", "restart"});
     QMessageBox::information(this, tr("Success"),
                              tr("Settings saved successfully!"));
     close();
@@ -2227,19 +2262,19 @@ void MainWindow::refreshDaemonStatus() {
 
 void MainWindow::onDaemonStart() {
   btnDaemonStart->setEnabled(false);
-  QProcess::startDetached("vinput", QStringList() << "daemon" << "start");
+  StartVinputDetached({"daemon", "start"});
   // The timer will catch the state change shortly.
 }
 
 void MainWindow::onDaemonStop() {
   btnDaemonStop->setEnabled(false);
-  QProcess::startDetached("vinput", QStringList() << "daemon" << "stop");
+  StartVinputDetached({"daemon", "stop"});
   // The timer will catch the state change shortly.
 }
 
 void MainWindow::onDaemonRestart() {
   btnDaemonRestart->setEnabled(false);
   btnDaemonStop->setEnabled(false);
-  QProcess::startDetached("vinput", QStringList() << "daemon" << "restart");
+  StartVinputDetached({"daemon", "restart"});
   // The timer will catch the state change shortly.
 }

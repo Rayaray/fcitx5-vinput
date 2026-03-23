@@ -1,4 +1,5 @@
 build/
+builddir/
 build-test/
 dist/
 packaging/arch/PKGBUILD
