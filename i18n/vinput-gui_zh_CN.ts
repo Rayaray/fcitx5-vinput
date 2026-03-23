@@ -123,6 +123,14 @@
         <translation>保存配置失败。</translation>
     </message>
     <message>
+        <source>Flatpak Vinput CLI not found at %1</source>
+        <translation>未在 %1 找到 Flatpak Vinput CLI</translation>
+    </message>
+    <message>
+        <source>Failed to launch %1</source>
+        <translation>启动 %1 失败</translation>
+    </message>
+    <message>
         <source>Daemon Status:</source>
         <translation>守护进程状态：</translation>
     </message>
