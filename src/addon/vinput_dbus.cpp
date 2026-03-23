@@ -53,9 +53,9 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
 
   if (error.code == kErrorCodeLocalAsrModelConfigMissing) {
     return error.subject.empty()
-               ? _("Local ASR model configuration is missing.")
+               ? _("Local ASR model configuration is missing. Please configure a model first.")
                : vinput::str::FmtStr(
-                     _("Local ASR model configuration is missing for provider '%s'."),
+                     _("Local ASR model configuration is missing for provider '%s'. Please configure a model first."),
                      error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelTypeMissing) {

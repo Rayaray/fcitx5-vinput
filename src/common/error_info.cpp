@@ -162,6 +162,18 @@ ErrorInfo ClassifyKnownDetail(std::string_view text) {
   const std::string normalized_text = TrimAsciiWhitespace(text);
   std::string_view normalized(normalized_text);
 
+  if (normalized == "Local ASR model configuration is missing.") {
+    return MakeErrorInfo(kErrorCodeLocalAsrModelConfigMissing, {}, {}, original);
+  }
+
+  if (ParseQuotedValue(
+          normalized, "Local ASR model configuration is missing for provider ",
+          &value, &tail) &&
+      tail == ".") {
+    return MakeErrorInfo(kErrorCodeLocalAsrModelConfigMissing,
+                         std::string(value), {}, original);
+  }
+
   if (ParseQuotedValue(normalized, "", &value, &tail) &&
       ConsumePrefix(&tail, " is missing model_type for model '") &&
       !tail.empty() && tail.back() == '\'') {
