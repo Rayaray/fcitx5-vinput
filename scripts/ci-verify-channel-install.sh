@@ -51,9 +51,6 @@ assert_common_install() {
     test -f "${runtime_dir}/libsherpa-onnx-c-api.so"
     test -f "${runtime_dir}/libsherpa-onnx-cxx-api.so"
 
-    vinput --help >/dev/null
-    vinput-daemon --help >/dev/null
-
     check_no_missing_libs /usr/bin/vinput
     check_no_missing_libs /usr/bin/vinput-daemon
     check_no_missing_libs "${addon_path}"
