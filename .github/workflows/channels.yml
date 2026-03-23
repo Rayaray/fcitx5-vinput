@@ -172,3 +172,16 @@ jobs:
             --repo xifan2333/aur-auto \
             --field package=fcitx5-vinput-bin \
             --field force=true
+
+  flatpak:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Flatpak repository publish
+        env:
+          GH_TOKEN: ${{ secrets.FLATPAK_AUTO_PAT }}
+        run: |
+          gh workflow run sync-and-publish.yml \
+            --repo xifan2333/flatpak-auto \
+            --field product=fcitx5-vinput \
+            --field version=${{ inputs.version }} \
+            --field force=true
