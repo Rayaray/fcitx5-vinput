@@ -1,6 +1,7 @@
 #include "asr_provider.h"
 
 #include "asr_engine.h"
+#include "common/i18n.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
 #include "common/string_utils.h"
@@ -34,6 +35,14 @@ public:
 
     provider_name_ = provider->name;
     model_name_ = provider->model;
+    if (model_name_.empty()) {
+      if (error) {
+        *error = vinput::str::FmtStr(
+            _("Local ASR model configuration is missing for provider '%s'."),
+            provider_name_);
+      }
+      return false;
+    }
 
     ModelManager model_mgr(ResolveModelBaseDir(config).string(), model_name_);
     std::string model_error;

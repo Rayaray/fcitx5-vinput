@@ -77,18 +77,6 @@ bool ShouldDisableAsrAtStartup(const CoreConfig &config, bool disable_asr,
   return false;
 }
 
-std::string AsrStartupConfigError(const CoreConfig &config) {
-  const AsrProvider *provider = ResolveActiveAsrProvider(config);
-  if (!provider || provider->type != vinput::asr::kLocalProviderType ||
-      !provider->model.empty()) {
-    return {};
-  }
-
-  return vinput::str::FmtStr(
-      _("Local ASR model configuration is missing for provider '%s'."),
-      provider->name);
-}
-
 void LogActiveAsrProvider(const CoreConfig &config) {
   const AsrProvider *provider = ResolveActiveAsrProvider(config);
   if (!provider) {
@@ -552,12 +540,6 @@ int main(int argc, char *argv[]) {
   disable_asr = ShouldDisableAsrAtStartup(startup_settings, disable_asr,
                                           &asr_disabled_reason);
   if (!disable_asr) {
-    const std::string startup_config_error =
-        AsrStartupConfigError(startup_settings);
-    if (!startup_config_error.empty()) {
-      fprintf(stderr, "vinput-daemon: %s\n", startup_config_error.c_str());
-      return 1;
-    }
     LogActiveAsrProvider(startup_settings);
     std::string asr_error;
     asr = vinput::asr::CreateProvider(startup_settings, &asr_error);
