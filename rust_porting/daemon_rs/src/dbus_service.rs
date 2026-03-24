@@ -111,6 +111,30 @@ pub enum DaemonCommand {
     StartRecording,
     StartCommandRecording { context_text: String },
     StopRecording { reason: String },
+    StartAdaptor { adaptor_id: String },
+    StopAdaptor { adaptor_id: String },
+}
+
+/// Adaptor 状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, zvariant::Type)]
+pub enum AdaptorStatus {
+    Stopped,
+    Starting,
+    Running,
+    Stopping,
+    Error,
+}
+
+impl AdaptorStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AdaptorStatus::Stopped => "stopped",
+            AdaptorStatus::Starting => "starting",
+            AdaptorStatus::Running => "running",
+            AdaptorStatus::Stopping => "stopping",
+            AdaptorStatus::Error => "error",
+        }
+    }
 }
 
 pub struct VinputDBusService {
@@ -154,6 +178,22 @@ impl VinputDBusService {
     async fn get_status(&self) -> zbus::fdo::Result<String> {
         // 这里需要从状态管理器获取真实状态，原型中先返回 idle
         Ok(DaemonStatus::Idle.as_str().to_string())
+    }
+
+    /// 启动 LLM Adaptor
+    async fn start_adaptor(&self, adaptor_id: String) -> zbus::fdo::Result<()> {
+        tracing::info!("收到 StartAdaptor 请求: {}", adaptor_id);
+        self.command_tx.send(DaemonCommand::StartAdaptor { adaptor_id }).await
+            .map_err(|e| zbus::fdo::Error::Failed(e.to_string()))?;
+        Ok(())
+    }
+
+    /// 停止 LLM Adaptor
+    async fn stop_adaptor(&self, adaptor_id: String) -> zbus::fdo::Result<()> {
+        tracing::info!("收到 StopAdaptor 请求: {}", adaptor_id);
+        self.command_tx.send(DaemonCommand::StopAdaptor { adaptor_id }).await
+            .map_err(|e| zbus::fdo::Error::Failed(e.to_string()))?;
+        Ok(())
     }
 
     // --- 信号 (Signals) ---
